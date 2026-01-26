@@ -52,7 +52,6 @@ function SecondPage() {
             </InputGroup>
           </div>
 
-          {/* Tracking Status Display */}
           {trackingUrl && (
             <div className="flex-1 overflow-hidden rounded-lg border">
               <iframe
@@ -64,12 +63,8 @@ function SecondPage() {
           )}
 
           {!trackingUrl && (
-            <div className="flex flex-1 items-center justify-center text-gray-400">
-              <p>
-                {t(
-                  "Enter a tracking code and press Enter or click the search button",
-                )}
-              </p>
+            <div className="flex items-center justify-center p-2 text-gray-400">
+              <p>{t("trackingDialog")}</p>
             </div>
           )}
         </div>
