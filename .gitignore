@@ -102,3 +102,10 @@ out/
 
 # Tanstack
 .tanstack/
+
+# Database
+*.db
+data/
+
+# VSCode
+.vscode/

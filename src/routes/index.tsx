@@ -2,58 +2,69 @@ import ToggleTheme from "@/components/toggle-theme";
 import { useTranslation } from "react-i18next";
 import LangToggle from "@/components/lang-toggle";
 import { createFileRoute } from "@tanstack/react-router";
-import { SiElectron, SiReact, SiVite } from "@icons-pack/react-simple-icons";
 import NavigationMenu from "@/components/navigation-menu";
-import { getAppVersion } from "@/actions/app";
-import { useEffect, useState, useTransition } from "react";
-import ExternalLink from "@/components/external-link";
-
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
-// import { AppSidebar } from "@/components/app-sidebar"
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BookOpen, Bug } from "lucide-react";
+import { SiGithub } from "@icons-pack/react-simple-icons";
+import { openExternalLink } from "@/actions/shell";
 
 function HomePage() {
-  const iconSize = 48;
-
-  const [appVersion, setAppVersion] = useState("0.0.0");
-  const [, startGetAppVersion] = useTransition();
   const { t } = useTranslation();
-
-  useEffect(
-    () => startGetAppVersion(() => getAppVersion().then(setAppVersion)),
-    [],
-  );
 
   return (
     <>
+      <NavigationMenu />
+      <div className="relative flex h-full flex-col items-center justify-center overflow-hidden px-4">
+        <Card className="w-full max-w-2xl">
+          <CardHeader className="gap-3">
+            <span className="flex items-end gap-2"></span>
+            <CardTitle className="text-2xl">{t("welcomeTitle")}</CardTitle>
+          </CardHeader>
 
-       <NavigationMenu />
-      <div className="flex h-full flex-col items-center justify-center">
-        <div className="flex flex-col items-end justify-center gap-0.5">
-          <div className="inline-flex gap-2">
-            <SiReact size={iconSize} />
-            <SiVite size={iconSize} />
-            <SiElectron size={iconSize} />
-          </div>
-          <span className="flex items-end justify-end">
-            <h1 className="font-mono text-4xl font-bold">{t("appName")}</h1>
-            <p className="text-muted-foreground text-sm">v{appVersion}</p>
-          </span>
-          <div className="flex w-full justify-between gap-2">
-            <ExternalLink
-              href="https://github.com/mmaachado"
-              className="text-muted-foreground flex gap-2 text-sm"
-            >
-              {t("madeBy")}
-            </ExternalLink>
-            <div className="flex items-center gap-2">
-              <LangToggle />
-              <ToggleTheme />
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="lg"
+                className="hover:border-primary/40 hover:bg-primary/10 hover:text-foreground transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.98] [&_svg]:transition-transform [&_svg]:duration-200 hover:[&_svg]:scale-110"
+                onClick={() => openExternalLink("https://github.com/mmaachado")}
+              >
+                <SiGithub />
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="hover:border-primary/40 hover:bg-primary/10 hover:text-foreground transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.98] [&_svg]:transition-transform [&_svg]:duration-200 hover:[&_svg]:rotate-[-8deg]"
+                onClick={() =>
+                  openExternalLink("https://github.com/mmaachado/nexus/issues")
+                }
+              >
+                <Bug />
+                {t("reportBug")}
+              </Button>
+              <Button
+                variant="secondary"
+                size="lg"
+                className="hover:bg-secondary/70 hover:text-foreground transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.98] [&_svg]:transition-transform [&_svg]:duration-200 hover:[&_svg]:translate-x-0.5"
+                onClick={() =>
+                  openExternalLink("https://avell-nexus-docs.vercel.app/")
+                }
+              >
+                <BookOpen />
+                {t("documentation")}
+              </Button>
             </div>
-          </div>
-        </div>
+
+            <div className="border-border/70 flex items-center justify-between border-t pt-3">
+              <div className="flex items-center gap-2">
+                <LangToggle />
+                <ToggleTheme />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-
-
     </>
   );
 }

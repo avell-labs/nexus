@@ -7,7 +7,6 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { useTranslation } from "react-i18next";
-import ExternalLink from "./external-link";
 
 export default function NavigationMenu() {
   const { t } = useTranslation();
@@ -28,13 +27,6 @@ export default function NavigationMenu() {
         <NavigationMenuItem>
           <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
             <Link to="/trackingPage">{t("trackingPage")}</Link>
-          </NavigationMenuLink>
-        </NavigationMenuItem>
-        <NavigationMenuItem>
-          <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-            <ExternalLink href="https://avell-nexus-docs.vercel.app/">
-              {t("documentation")}
-            </ExternalLink>
           </NavigationMenuLink>
         </NavigationMenuItem>
       </NavigationMenuList>
