@@ -14,7 +14,13 @@ const config: ForgeConfig = {
   },
   rebuildConfig: {},
   makers: [
-    new MakerSquirrel({}),
+    new MakerSquirrel({
+      name: "nexus",
+      authors: "Marcelo Machado",
+      description: "App for Avell's technical support team",
+      setupIcon: "images/avell.ico",
+      // loadingGif: "images/installer.gif",
+    }),
     new MakerZIP({}, ["darwin"]),
     new MakerRpm({}),
     new MakerDeb({}),
@@ -28,10 +34,11 @@ const config: ForgeConfig = {
       name: "@electron-forge/publisher-github",
       config: {
         repository: {
-          owner: "Marcelo Machado",
+          owner: "avell-labs",
           name: "nexus",
         },
         draft: true,
+        authToken: process.env.GITHUB_TOKEN,
         prerelease: false,
       },
     },
