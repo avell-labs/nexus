@@ -81,7 +81,13 @@ function normalizeCity(value: string): string {
 function findNearestAssistance(
   origin: Coordinates,
 ): NearestAssistanceResult | null {
-  const assistances = getAuthorizedAssistances();
+  return findNearestAssistanceFromList(origin, getAuthorizedAssistances());
+}
+
+function findNearestAssistanceFromList(
+  origin: Coordinates,
+  assistances: readonly AuthorizedAssistance[],
+): NearestAssistanceResult | null {
   if (assistances.length === 0) {
     return null;
   }
@@ -115,32 +121,26 @@ function findNearestAssistanceInCity(
     (assistance) => normalizeCity(assistance.city) === normalizedTargetCity,
   );
 
-  if (assistancesInCity.length === 0) {
-    return null;
-  }
+  return findNearestAssistanceFromList(origin, assistancesInCity);
+}
 
-  let nearestAssistance = assistancesInCity[0];
-  let nearestDistance = calculateDistanceInKm(
-    origin,
-    nearestAssistance.location,
+function findNearestAssistanceInCityFromList(
+  origin: Coordinates,
+  city: string,
+  assistances: readonly AuthorizedAssistance[],
+): NearestAssistanceResult | null {
+  const normalizedTargetCity = normalizeCity(city);
+  const assistancesInCity = assistances.filter(
+    (assistance) => normalizeCity(assistance.city) === normalizedTargetCity,
   );
 
-  for (const assistance of assistancesInCity.slice(1)) {
-    const currentDistance = calculateDistanceInKm(origin, assistance.location);
-    if (currentDistance < nearestDistance) {
-      nearestAssistance = assistance;
-      nearestDistance = currentDistance;
-    }
-  }
-
-  return {
-    assistance: nearestAssistance,
-    distanceKm: nearestDistance,
-  };
+  return findNearestAssistanceFromList(origin, assistancesInCity);
 }
 
 export {
   findNearestAssistance,
+  findNearestAssistanceFromList,
   findNearestAssistanceInCity,
+  findNearestAssistanceInCityFromList,
   getAuthorizedAssistances,
 };
