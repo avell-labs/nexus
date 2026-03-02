@@ -46,16 +46,48 @@ jobs:
             const repo = context.repo.repo;
             const tag = context.ref.replace("refs/tags/", "");
             const notes = fs.readFileSync(".github/release-notes.md", "utf8");
+            const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-            const release = await github.rest.repos.getReleaseByTag({
-              owner,
-              repo,
-              tag,
-            });
+            let release = null;
 
-            await github.rest.repos.updateRelease({
-              owner,
-              repo,
-              release_id: release.data.id,
-              body: notes,
-            });
+            for (let attempt = 1; attempt <= 8; attempt++) {
+              try {
+                const response = await github.rest.repos.getReleaseByTag({
+                  owner,
+                  repo,
+                  tag,
+                });
+                release = response.data;
+                core.info(`Release found on attempt ${attempt}: id=${release.id}`);
+                break;
+              } catch (error) {
+                if (error.status !== 404) {
+                  throw error;
+                }
+                core.info(`Release not found for tag ${tag} (attempt ${attempt}/8). Waiting 10s...`);
+                await sleep(10000);
+              }
+            }
+
+            if (!release) {
+              core.info(`Release for tag ${tag} still not found. Creating draft release with generated notes.`);
+              const created = await github.rest.repos.createRelease({
+                owner,
+                repo,
+                tag_name: tag,
+                name: tag,
+                body: notes,
+                draft: true,
+                prerelease: false,
+                target_commitish: context.sha,
+              });
+              core.info(`Draft release created: id=${created.data.id}`);
+            } else {
+              await github.rest.repos.updateRelease({
+                owner,
+                repo,
+                release_id: release.id,
+                body: notes,
+              });
+              core.info(`Release notes updated for tag ${tag}.`);
+            }
