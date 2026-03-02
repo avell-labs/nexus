@@ -18,8 +18,7 @@ i18n.use(initReactI18next).init({
         searchLoading: "Searching nearest authorized assistance...",
         searchNoResults:
           "No authorized assistance was found for this location.",
-        searchNoCityResults:
-          "No authorized assistance was found in this city.",
+        searchNoCityResults: "No authorized assistance was found in this city.",
         searchInvalid: "Please enter at least 3 valid characters.",
         searchError: "Unable to complete the search. Try again in a moment.",
         distanceLabel: "Distance",
@@ -37,6 +36,10 @@ i18n.use(initReactI18next).init({
         updateNotAvailable: "You're up to date.",
         updateCheckError: "Unable to check updates right now.",
         checkUpdates: "Check updates",
+        updateDownloaded:
+          "Update downloaded successfully. Restart the app to apply it.",
+        currentVersion: "Current version",
+        updateUnknownError: "Unknown update error",
         madeBy: "Made by Marquês",
       },
     },
@@ -74,6 +77,10 @@ i18n.use(initReactI18next).init({
         updateNotAvailable: "Você já está na versão mais recente.",
         updateCheckError: "Não foi possível verificar atualizações agora.",
         checkUpdates: "Buscar atualizações",
+        updateDownloaded:
+          "Atualização baixada com sucesso. Reinicie o app para aplicar.",
+        currentVersion: "Versão atual",
+        updateUnknownError: "Erro de atualização desconhecido",
         madeBy: "Feito por Marquês",
       },
     },

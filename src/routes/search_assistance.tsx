@@ -339,6 +339,7 @@ function SecondPage() {
         <div className="flex flex-1 flex-col items-center justify-center gap-3">
           <InputGroup className="max-w-xs">
             <InputGroupInput
+              data-testid="search-assistance-input"
               placeholder={t("searchPlaceholder")}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -351,6 +352,7 @@ function SecondPage() {
             />
             <InputGroupAddon>
               <InputGroupButton
+                data-testid="search-assistance-submit"
                 size="icon-xs"
                 aria-label={t("searchPage")}
                 onClick={() => setDebouncedQuery(query)}
@@ -362,13 +364,17 @@ function SecondPage() {
 
           {renderStateText()}
           {searchState.status === "success" && !searchState.hasCityMatch && (
-            <p className="text-muted-foreground text-sm">
+            <p
+              className="text-muted-foreground text-sm"
+              data-testid="search-no-city-results"
+            >
               {t("searchNoCityResults")}
             </p>
           )}
 
           {hasResult && (
             <Collapsible
+              data-testid="nearest-assistance-card"
               open={isOpen}
               onOpenChange={setIsOpen}
               className="flex w-[350px] flex-col gap-2"

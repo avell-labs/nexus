@@ -50,7 +50,7 @@ async function installExtensions() {
 }
 
 function checkForUpdates() {
-  if (inDevelopment) {
+  if (inDevelopment || process.env.CI === "e2e") {
     return;
   }
 

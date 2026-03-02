@@ -16,17 +16,23 @@ export default function NavigationMenu() {
       <NavigationMenuList>
         <NavigationMenuItem>
           <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-            <Link to="/">{t("titleHomePage")}</Link>
+            <Link to="/" data-testid="nav-home">
+              {t("titleHomePage")}
+            </Link>
           </NavigationMenuLink>
         </NavigationMenuItem>
         <NavigationMenuItem>
           <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-            <Link to="/search_assistance">{t("searchPage")}</Link>
+            <Link to="/search_assistance" data-testid="nav-search-assistance">
+              {t("searchPage")}
+            </Link>
           </NavigationMenuLink>
         </NavigationMenuItem>
         <NavigationMenuItem>
           <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-            <Link to="/trackingPage">{t("trackingPage")}</Link>
+            <Link to="/trackingPage" data-testid="nav-tracking">
+              {t("trackingPage")}
+            </Link>
           </NavigationMenuLink>
         </NavigationMenuItem>
       </NavigationMenuList>
