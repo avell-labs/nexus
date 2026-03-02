@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from "electron";
+import { app, autoUpdater, BrowserWindow } from "electron";
 import path from "path";
 import {
   installExtension,
@@ -8,6 +8,7 @@ import { ipcMain } from "electron/main";
 import { ipcContext } from "@/ipc/context";
 import { IPC_CHANNELS } from "./constants";
 import { updateElectronApp, UpdateSourceType } from "update-electron-app";
+import { setUpdateStatus } from "@/ipc/app/update-state";
 
 const inDevelopment = process.env.NODE_ENV === "development";
 
@@ -52,6 +53,27 @@ function checkForUpdates() {
   if (inDevelopment) {
     return;
   }
+
+  autoUpdater.on("checking-for-update", () => {
+    setUpdateStatus("checking", null);
+  });
+
+  autoUpdater.on("update-available", () => {
+    setUpdateStatus("available", "A new update is available.");
+  });
+
+  autoUpdater.on("update-not-available", () => {
+    setUpdateStatus("not-available", null);
+  });
+
+  autoUpdater.on("update-downloaded", () => {
+    setUpdateStatus("downloaded", "Update downloaded. Restart to apply.");
+  });
+
+  autoUpdater.on("error", (error) => {
+    const message = error instanceof Error ? error.message : String(error);
+    setUpdateStatus("error", message);
+  });
 
   updateElectronApp({
     updateSource: {

@@ -6,6 +6,14 @@ const geocodingResponseSchema = z.array(
     lat: z.string(),
     lon: z.string(),
     display_name: z.string().min(1),
+    address: z
+      .object({
+        city: z.string().optional(),
+        town: z.string().optional(),
+        village: z.string().optional(),
+        municipality: z.string().optional(),
+      })
+      .optional(),
   }),
 );
 
@@ -42,6 +50,7 @@ async function geocodeSearchQuery(query: string): Promise<GeocodingResult> {
     format: "jsonv2",
     limit: "1",
     countrycodes: "br",
+    addressdetails: "1",
   });
 
   const response = await fetch(
@@ -69,6 +78,12 @@ async function geocodeSearchQuery(query: string): Promise<GeocodingResult> {
       lat: Number(firstResult.lat),
       lng: Number(firstResult.lon),
     },
+    city:
+      firstResult.address?.city ??
+      firstResult.address?.town ??
+      firstResult.address?.village ??
+      firstResult.address?.municipality ??
+      null,
   };
 
   geocodingCache.set(normalizedQuery, geocodingResult);

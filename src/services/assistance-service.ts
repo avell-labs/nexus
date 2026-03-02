@@ -70,6 +70,14 @@ function calculateDistanceInKm(
   return earthRadiusKm * centralAngle;
 }
 
+function normalizeCity(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .trim();
+}
+
 function findNearestAssistance(
   origin: Coordinates,
 ): NearestAssistanceResult | null {
@@ -98,4 +106,41 @@ function findNearestAssistance(
   };
 }
 
-export { findNearestAssistance, getAuthorizedAssistances };
+function findNearestAssistanceInCity(
+  origin: Coordinates,
+  city: string,
+): NearestAssistanceResult | null {
+  const normalizedTargetCity = normalizeCity(city);
+  const assistancesInCity = getAuthorizedAssistances().filter(
+    (assistance) => normalizeCity(assistance.city) === normalizedTargetCity,
+  );
+
+  if (assistancesInCity.length === 0) {
+    return null;
+  }
+
+  let nearestAssistance = assistancesInCity[0];
+  let nearestDistance = calculateDistanceInKm(
+    origin,
+    nearestAssistance.location,
+  );
+
+  for (const assistance of assistancesInCity.slice(1)) {
+    const currentDistance = calculateDistanceInKm(origin, assistance.location);
+    if (currentDistance < nearestDistance) {
+      nearestAssistance = assistance;
+      nearestDistance = currentDistance;
+    }
+  }
+
+  return {
+    assistance: nearestAssistance,
+    distanceKm: nearestDistance,
+  };
+}
+
+export {
+  findNearestAssistance,
+  findNearestAssistanceInCity,
+  getAuthorizedAssistances,
+};

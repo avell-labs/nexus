@@ -21,6 +21,7 @@ export interface AuthorizedAssistance {
 export interface GeocodingResult {
   displayName: string;
   coordinates: Coordinates;
+  city: string | null;
 }
 
 export interface NearestAssistanceResult {

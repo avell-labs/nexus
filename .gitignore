@@ -108,5 +108,8 @@ out/
 data/
 src/data/authorized_assistances.json
 
+# Release notes artifact
+.github/release-notes.md
+
 # VSCode
 .vscode/

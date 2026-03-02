@@ -9,6 +9,7 @@ import {
   Map,
   MapCircle,
   MapMarker,
+  MapPolyline,
   MapTileLayer,
   MapFullscreenControl,
   MapZoomControl,
@@ -31,11 +32,15 @@ import {
 import { ChevronsUpDown } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { findNearestAssistance } from "@/services/assistance-service";
+import {
+  findNearestAssistance,
+  findNearestAssistanceInCity,
+} from "@/services/assistance-service";
 import {
   geocodeSearchQuery,
   normalizeSearchQuery,
 } from "@/services/geocoding-service";
+import { getDrivingRoute } from "@/services/route-service";
 import type { Coordinates, NearestAssistanceResult } from "@/types/assistance";
 
 type SearchStatus = "idle" | "loading" | "success" | "empty" | "error";
@@ -45,6 +50,7 @@ interface SearchState {
   errorMessage: string | null;
   geocodedLocation: Coordinates | null;
   nearestResult: NearestAssistanceResult | null;
+  hasCityMatch: boolean;
 }
 
 const DEFAULT_CENTER: [number, number] = [-26.3044, -48.8464];
@@ -52,13 +58,20 @@ const DEFAULT_CENTER: [number, number] = [-26.3044, -48.8464];
 function MapViewportController({
   searchCoordinates,
   assistanceCoordinates,
+  routeCoordinates,
 }: {
   searchCoordinates: [number, number] | null;
   assistanceCoordinates: [number, number] | null;
+  routeCoordinates: [number, number][];
 }) {
   const map = useMap();
 
   React.useEffect(() => {
+    if (routeCoordinates.length > 1) {
+      map.fitBounds(routeCoordinates, { animate: true, padding: [40, 40] });
+      return;
+    }
+
     if (assistanceCoordinates) {
       map.setView(assistanceCoordinates, 15, { animate: true });
       return;
@@ -70,7 +83,7 @@ function MapViewportController({
     }
 
     map.setView(DEFAULT_CENTER, 6, { animate: true });
-  }, [map, searchCoordinates, assistanceCoordinates]);
+  }, [map, searchCoordinates, assistanceCoordinates, routeCoordinates]);
 
   return null;
 }
@@ -81,11 +94,15 @@ function SecondPage() {
   const [debouncedQuery, setDebouncedQuery] = React.useState("");
   const [isOpen, setIsOpen] = React.useState(false);
   const [copyState, setCopyState] = React.useState<"idle" | "copied">("idle");
+  const [routeCoordinates, setRouteCoordinates] = React.useState<
+    [number, number][]
+  >([]);
   const [searchState, setSearchState] = React.useState<SearchState>({
     status: "idle",
     errorMessage: null,
     geocodedLocation: null,
     nearestResult: null,
+    hasCityMatch: false,
   });
   const latestRequestId = React.useRef(0);
   const copyTimeoutRef = React.useRef<number | null>(null);
@@ -109,6 +126,7 @@ function SecondPage() {
           errorMessage: null,
           geocodedLocation: null,
           nearestResult: null,
+          hasCityMatch: false,
         });
         return;
       }
@@ -124,9 +142,14 @@ function SecondPage() {
 
       try {
         const geocodingResult = await geocodeSearchQuery(normalizedQuery);
-        const nearestResult = findNearestAssistance(
-          geocodingResult.coordinates,
-        );
+        const nearestInCity = geocodingResult.city
+          ? findNearestAssistanceInCity(
+              geocodingResult.coordinates,
+              geocodingResult.city,
+            )
+          : null;
+        const nearestResult =
+          nearestInCity ?? findNearestAssistance(geocodingResult.coordinates);
 
         if (requestId !== latestRequestId.current) {
           return;
@@ -135,10 +158,12 @@ function SecondPage() {
         if (!nearestResult) {
           setSearchState({
             status: "empty",
-            errorMessage: null,
+            errorMessage: t("searchNoResults"),
             geocodedLocation: geocodingResult.coordinates,
             nearestResult: null,
+            hasCityMatch: false,
           });
+          setRouteCoordinates([]);
           setIsOpen(false);
           return;
         }
@@ -148,6 +173,7 @@ function SecondPage() {
           errorMessage: null,
           geocodedLocation: geocodingResult.coordinates,
           nearestResult,
+          hasCityMatch: Boolean(nearestInCity),
         });
         setIsOpen(true);
       } catch (error) {
@@ -161,7 +187,9 @@ function SecondPage() {
             errorMessage: t("searchInvalid"),
             geocodedLocation: null,
             nearestResult: null,
+            hasCityMatch: false,
           });
+          setRouteCoordinates([]);
           return;
         }
 
@@ -170,7 +198,9 @@ function SecondPage() {
           errorMessage: t("searchError"),
           geocodedLocation: null,
           nearestResult: null,
+          hasCityMatch: false,
         });
+        setRouteCoordinates([]);
       }
     },
     [t],
@@ -193,6 +223,43 @@ function SecondPage() {
         nearestResult.assistance.location.lng,
       ]
     : null;
+
+  React.useEffect(() => {
+    if (!searchState.geocodedLocation || !nearestResult) {
+      setRouteCoordinates([]);
+      return;
+    }
+
+    if (!searchState.hasCityMatch) {
+      setRouteCoordinates([]);
+      return;
+    }
+
+    let active = true;
+    const origin = searchState.geocodedLocation;
+    const destination = nearestResult.assistance.location;
+
+    const loadRoute = async () => {
+      try {
+        const route = await getDrivingRoute(origin, destination);
+        if (!active) return;
+        setRouteCoordinates(route);
+      } catch {
+        if (!active) return;
+        setRouteCoordinates([
+          [origin.lat, origin.lng],
+          [destination.lat, destination.lng],
+        ]);
+      }
+    };
+
+    void loadRoute();
+
+    return () => {
+      active = false;
+    };
+  }, [searchState.geocodedLocation, nearestResult, searchState.hasCityMatch]);
+
   function formatDistance(distanceKm: number): string {
     if (distanceKm < 1) {
       return `${Math.round(distanceKm * 1000)} m`;
@@ -256,7 +323,9 @@ function SecondPage() {
 
     if (searchState.status === "empty") {
       return (
-        <p className="text-muted-foreground text-sm">{t("searchNoResults")}</p>
+        <p className="text-muted-foreground text-sm">
+          {searchState.errorMessage ?? t("searchNoResults")}
+        </p>
       );
     }
 
@@ -292,6 +361,11 @@ function SecondPage() {
           </InputGroup>
 
           {renderStateText()}
+          {searchState.status === "success" && !searchState.hasCityMatch && (
+            <p className="text-muted-foreground text-sm">
+              {t("searchNoCityResults")}
+            </p>
+          )}
 
           {hasResult && (
             <Collapsible
@@ -356,6 +430,7 @@ function SecondPage() {
                 searchState.geocodedLocation ? mapCenter : null
               }
               assistanceCoordinates={nearestCoordinates}
+              routeCoordinates={routeCoordinates}
             />
             <MapTileLayer
               url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"
@@ -376,6 +451,13 @@ function SecondPage() {
                   className="fill-sky-500/40 stroke-sky-500 stroke-2"
                 />
               </>
+            )}
+
+            {routeCoordinates.length > 1 && (
+              <MapPolyline
+                positions={routeCoordinates}
+                className="stroke-primary fill-transparent stroke-[3]"
+              />
             )}
 
             {nearestCoordinates && (
