@@ -83,6 +83,37 @@ When you open the app, it will check for updates automatically. If an update is 
 
 The auto update is implemented using [update-electron-app](https://github.com/electron/update-electron-app) to check the updates and apply them. For the publishing, it is using the [Electron Forge's GitHub publisher](https://www.electronforge.io/config/publishers/github).
 
+### Sensitive assistance data
+
+The file `src/data/authorized_assistances.json` is intentionally ignored by git and should not be committed.
+
+For release builds in GitHub Actions, provide one of these repository secrets:
+
+- `AUTHORIZED_ASSISTANCES_JSON` (raw JSON string)
+- `AUTHORIZED_ASSISTANCES_JSON_B64` (base64 encoded JSON)
+
+The publish workflow injects this file at build time through:
+
+```bash
+npm run inject:assistances
+```
+
+If no secret is provided, the app still builds with an empty assistance list.
+
+### Release checklist
+
+1. Bump `version` in `package.json`.
+2. Push commit to `main`.
+3. Create and push a tag in `vX.Y.Z` format (example: `v1.2.0`).
+4. Wait for `.github/workflows/publish.yaml` to finish.
+5. Open the draft release on GitHub, review notes/assets, and publish it.
+6. Validate update by installing an older app build and reopening it.
+
+### Important limitation
+
+`UpdateSourceType.ElectronPublicUpdateService` requires a public GitHub repository.
+If your repo is private, switch to a private update source strategy (for example, static storage with authenticated access).
+
 ## Documentation
 
 Check out the full documentation [here](https://avell-nexus-docs.vercel.app/).

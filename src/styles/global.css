@@ -140,6 +140,7 @@
   }
   .leaflet-div-icon {
     @apply !border-none !bg-transparent;
+    @apply !bg-transparent !border-none;
   }
   .leaflet-popup-content-wrapper,
   .leaflet-popup-content,
@@ -186,5 +187,14 @@
   }
   .marker-cluster div {
     @apply font-[inherit];
+  }
+  .leaflet-popup-content-wrapper, .leaflet-popup-content, .leaflet-popup-content p {
+    @apply ![all:unset];
+  }
+  .leaflet-tooltip, .leaflet-draw-tooltip {
+    @apply !bg-foreground !text-background !animate-none !rounded-md !border-none !p-0 !px-3 !py-1.5 !shadow-none;
+  }
+  .leaflet-popup-tip-container, .leaflet-tooltip-top:before, .leaflet-tooltip-bottom:before, .leaflet-tooltip-left:before, .leaflet-tooltip-right:before {
+    @apply hidden;
   }
 }

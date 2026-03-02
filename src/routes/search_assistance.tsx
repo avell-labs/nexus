@@ -4,7 +4,6 @@ import NavigationMenu from "@/components/navigation-menu";
 import * as React from "react";
 import { Search, Copy, Wrench, User } from "lucide-react";
 import { useMap } from "react-leaflet";
-import { useTheme } from "next-themes";
 
 import {
   Map,
@@ -78,7 +77,6 @@ function MapViewportController({
 
 function SecondPage() {
   const { t } = useTranslation();
-  const { resolvedTheme } = useTheme();
   const [query, setQuery] = React.useState("");
   const [debouncedQuery, setDebouncedQuery] = React.useState("");
   const [isOpen, setIsOpen] = React.useState(false);
@@ -195,11 +193,6 @@ function SecondPage() {
         nearestResult.assistance.location.lng,
       ]
     : null;
-  const tileUrl =
-    resolvedTheme === "dark"
-      ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"
-      : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png";
-
   function formatDistance(distanceKm: number): string {
     if (distanceKm < 1) {
       return `${Math.round(distanceKm * 1000)} m`;
@@ -364,7 +357,10 @@ function SecondPage() {
               }
               assistanceCoordinates={nearestCoordinates}
             />
-            <MapTileLayer url={tileUrl} />
+            <MapTileLayer
+              url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"
+              darkUrl="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"
+            />
             <MapZoomControl />
             <MapFullscreenControl />
 

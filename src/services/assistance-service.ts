@@ -1,4 +1,3 @@
-import rawAuthorizedAssistances from "@/data/authorized_assistances.json";
 import type {
   AuthorizedAssistance,
   Coordinates,
@@ -28,8 +27,18 @@ const authorizedAssistanceCollectionSchema = z.array(
   authorizedAssistanceSchema,
 );
 
+function loadRawAuthorizedAssistances(): unknown {
+  const dataModules = import.meta.glob("../data/authorized_assistances.json", {
+    eager: true,
+    import: "default",
+  }) as Record<string, unknown>;
+
+  const loadedData = Object.values(dataModules)[0];
+  return loadedData ?? [];
+}
+
 const parsedAuthorizedAssistances = authorizedAssistanceCollectionSchema.parse(
-  rawAuthorizedAssistances,
+  loadRawAuthorizedAssistances(),
 );
 
 function getAuthorizedAssistances(): readonly AuthorizedAssistance[] {

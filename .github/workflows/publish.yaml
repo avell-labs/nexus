@@ -22,6 +22,11 @@ jobs:
 
       - run: npm ci
 
+      - run: npm run inject:assistances
+        env:
+          AUTHORIZED_ASSISTANCES_JSON: ${{ secrets.AUTHORIZED_ASSISTANCES_JSON }}
+          AUTHORIZED_ASSISTANCES_JSON_B64: ${{ secrets.AUTHORIZED_ASSISTANCES_JSON_B64 }}
+
       - run: npm run make
 
       - run: npm run publish

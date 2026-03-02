@@ -1,7 +1,7 @@
 {
   "name": "nexus",
   "productName": "nexus",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "App for Avell's technical support team",
   "main": ".vite/build/main.js",
   "private": true,
@@ -14,6 +14,7 @@
     "format": "prettier --check .",
     "format:write": "prettier --write .",
     "bump-ui": "ts-node ./scripts/bump-ui.ts",
+    "inject:assistances": "node ./scripts/inject-assistances.mjs",
     "test": "vitest run",
     "test:watch": "vitest watch",
     "test:unit": "vitest",

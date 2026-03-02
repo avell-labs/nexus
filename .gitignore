@@ -106,6 +106,7 @@ out/
 # Database
 *.db
 data/
+src/data/authorized_assistances.json
 
 # VSCode
 .vscode/

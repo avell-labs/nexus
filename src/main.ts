@@ -49,11 +49,17 @@ async function installExtensions() {
 }
 
 function checkForUpdates() {
+  if (inDevelopment) {
+    return;
+  }
+
   updateElectronApp({
     updateSource: {
       type: UpdateSourceType.ElectronPublicUpdateService,
       repo: "avell-labs/nexus",
     },
+    logger: console,
+    notifyUser: true,
   });
 }
 
