@@ -28,10 +28,19 @@ jobs:
           AUTHORIZED_ASSISTANCES_JSON_B64: ${{ secrets.AUTHORIZED_ASSISTANCES_JSON_B64 }}
 
       - run: npm run make
+        env:
+          ENTRA_CLIENT_ID: ${{ secrets.ENTRA_CLIENT_ID }}
+          ENTRA_TENANT_ID: ${{ secrets.ENTRA_TENANT_ID }}
+          ENTRA_SCOPES: ${{ secrets.ENTRA_SCOPES }}
+          ENTRA_AUTHORITY: ${{ secrets.ENTRA_AUTHORITY }}
 
       - run: npm run publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ENTRA_CLIENT_ID: ${{ secrets.ENTRA_CLIENT_ID }}
+          ENTRA_TENANT_ID: ${{ secrets.ENTRA_TENANT_ID }}
+          ENTRA_SCOPES: ${{ secrets.ENTRA_SCOPES }}
+          ENTRA_AUTHORITY: ${{ secrets.ENTRA_AUTHORITY }}
 
       - run: npm run release:notes
         env:
