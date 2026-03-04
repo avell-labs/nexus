@@ -16,7 +16,7 @@ async function getDrivingRoute(
   destination: Coordinates,
 ): Promise<[number, number][]> {
   const response = await fetch(
-    `https://router.project-osrm.org/route/v1/driving/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?overview=full&geometries=geojson`,
+    `https://router.project-osrm.org/route/v1/driving/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?overview=simplified&geometries=geojson`,
   );
 
   if (!response.ok) {

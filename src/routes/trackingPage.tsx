@@ -1,6 +1,5 @@
 import { useTranslation } from "react-i18next";
 import { createFileRoute } from "@tanstack/react-router";
-import NavigationMenu from "@/components/navigation-menu";
 import { useState } from "react";
 import {
   InputGroup,
@@ -29,8 +28,7 @@ function SecondPage() {
 
   return (
     <>
-      <NavigationMenu />
-      <div className="flex h-screen flex-col">
+      <div className="flex h-full flex-col">
         <div className="flex flex-1 flex-col gap-4 p-6">
           {/* Input Section */}
           <div className="flex items-center justify-center gap-2">
@@ -57,7 +55,7 @@ function SecondPage() {
               <iframe
                 src={trackingUrl}
                 className="h-full w-full border-none"
-                title="Order Tracking"
+                title={t("trackingIframeTitle")}
               />
             </div>
           )}

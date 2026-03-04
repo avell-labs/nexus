@@ -135,6 +135,20 @@
   .leaflet-container {
     @apply !bg-card !font-[inherit];
   }
+  .leaflet-container img,
+  .leaflet-container svg,
+  .leaflet-container canvas {
+    width: auto !important;
+    height: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+  }
+  .leaflet-pane,
+  .leaflet-tile,
+  .leaflet-marker-icon,
+  .leaflet-marker-shadow {
+    transform-origin: 0 0;
+  }
   .leaflet-container a {
     @apply !text-inherit;
   }

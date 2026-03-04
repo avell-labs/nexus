@@ -1,6 +1,6 @@
 import BaseLayout from "@/layouts/base-layout";
 import { Outlet, createRootRoute } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+// import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Card, CardContent } from "@/components/ui/card";
 import { LoginForm } from "@/components/login-form";
 import { getAuthStatus, signInWithEntra } from "@/actions/auth";
@@ -11,32 +11,17 @@ import { Spinner } from "@/components/ui/spinner";
 const authBypassEnabled =
   import.meta.env.DEV && import.meta.env.VITE_AUTH_BYPASS === "true";
 
-function LoginGate() {
-  const [status, setStatus] = useState<AuthStatus | null>(null);
-
-  useEffect(() => {
-    let active = true;
-
-    const loadStatus = async () => {
-      const authStatus = await getAuthStatus();
-      if (!active) return;
-      setStatus(authStatus);
-    };
-
-    void loadStatus();
-    const intervalId = window.setInterval(() => {
-      void loadStatus();
-    }, 5000);
-
-    return () => {
-      active = false;
-      window.clearInterval(intervalId);
-    };
-  }, []);
-
+function LoginGate({
+  status,
+  onStatusChange,
+}: {
+  status: AuthStatus | null;
+  onStatusChange: (nextStatus: AuthStatus) => void;
+}) {
   async function handleSignIn() {
     const nextStatus = await signInWithEntra();
-    setStatus(nextStatus);
+    onStatusChange(nextStatus);
+    window.dispatchEvent(new CustomEvent("nexus:auth-changed"));
   }
 
   if (authBypassEnabled) {
@@ -73,10 +58,37 @@ function LoginGate() {
 }
 
 function Root() {
+  const [status, setStatus] = useState<AuthStatus | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadStatus = async () => {
+      const authStatus = await getAuthStatus();
+      if (!active) return;
+      setStatus(authStatus);
+    };
+
+    void loadStatus();
+    const handleAuthChanged = () => {
+      void loadStatus();
+    };
+    window.addEventListener("nexus:auth-changed", handleAuthChanged);
+    const intervalId = window.setInterval(() => {
+      void loadStatus();
+    }, 5000);
+
+    return () => {
+      active = false;
+      window.removeEventListener("nexus:auth-changed", handleAuthChanged);
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
   return (
-    <BaseLayout>
-      <LoginGate />
-      <TanStackRouterDevtools />
+    <BaseLayout authStatus={status} forceSidebar={authBypassEnabled}>
+      <LoginGate status={status} onStatusChange={setStatus} />
+      {/* <TanStackRouterDevtools /> */}
     </BaseLayout>
   );
 }

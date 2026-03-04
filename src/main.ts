@@ -12,9 +12,17 @@ import { setUpdateStatus } from "@/ipc/app/update-state";
 
 const inDevelopment = process.env.NODE_ENV === "development";
 
+// Workaround for Chromium GPU tile rendering artifacts seen on some Windows setups.
+app.disableHardwareAcceleration();
+
+if (process.platform === "win32") {
+  app.setAppUserModelId("com.squirrel.nexus.nexus");
+}
+
 function createWindow() {
   const preload = path.join(__dirname, "preload.js");
   const mainWindow = new BrowserWindow({
+    show: false,
     width: 1920,
     height: 1080,
     webPreferences: {
@@ -38,6 +46,11 @@ function createWindow() {
       path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
     );
   }
+
+  mainWindow.once("ready-to-show", () => {
+    mainWindow.maximize();
+    mainWindow.show();
+  });
 }
 
 async function installExtensions() {

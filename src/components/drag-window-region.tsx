@@ -1,12 +1,14 @@
 import { getPlatform } from "@/actions/app";
 import { closeWindow, maximizeWindow, minimizeWindow } from "@/actions/window";
 import { type ReactNode, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface DragWindowRegionProps {
   title?: ReactNode;
 }
 
 export default function DragWindowRegion({ title }: DragWindowRegionProps) {
+  const { t } = useTranslation();
   const [platform, setPlatform] = useState<string | null>(null);
 
   useEffect(() => {
@@ -45,16 +47,30 @@ export default function DragWindowRegion({ title }: DragWindowRegionProps) {
           </div>
         )}
       </div>
-      {!isMacOS && <WindowButtons />}
+      {!isMacOS && (
+        <WindowButtons
+          minimizeLabel={t("windowMinimize")}
+          maximizeLabel={t("windowMaximize")}
+          closeLabel={t("windowClose")}
+        />
+      )}
     </div>
   );
 }
 
-function WindowButtons() {
+function WindowButtons({
+  minimizeLabel,
+  maximizeLabel,
+  closeLabel,
+}: {
+  minimizeLabel: string;
+  maximizeLabel: string;
+  closeLabel: string;
+}) {
   return (
     <div className="flex">
       <button
-        title="Minimize"
+        title={minimizeLabel}
         type="button"
         className="p-2 hover:bg-slate-300"
         onClick={minimizeWindow}
@@ -70,7 +86,7 @@ function WindowButtons() {
         </svg>
       </button>
       <button
-        title="Maximize"
+        title={maximizeLabel}
         type="button"
         className="p-2 hover:bg-slate-300"
         onClick={maximizeWindow}
@@ -94,7 +110,7 @@ function WindowButtons() {
       </button>
       <button
         type="button"
-        title="Close"
+        title={closeLabel}
         className="p-2 hover:bg-red-300"
         onClick={closeWindow}
       >

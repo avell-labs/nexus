@@ -1,5 +1,6 @@
 import { cn } from "@/utils/tailwind"
 import { Button } from "@/components/ui/button"
+import { useTranslation } from "react-i18next"
 import {
   FieldGroup,
 } from "@/components/ui/field"
@@ -20,13 +21,15 @@ export function LoginForm({
   className,
   ...props
 }: LoginFormProps) {
+  const { t } = useTranslation()
+
   return (
     <form className={cn("flex flex-col gap-6", className)} {...props}>
       <FieldGroup>
         <div className="flex flex-col items-center gap-1 text-center">
-          <h1 className="text-2xl font-bold">Sign in with Microsoft</h1>
+          <h1 className="text-2xl font-bold">{t("loginTitle")}</h1>
           <p className="text-sm text-balance text-muted-foreground">
-            Access to Nexus is restricted to authenticated company accounts.
+            {t("loginSubtitle")}
           </p>
         </div>
         <Button
@@ -36,10 +39,10 @@ export function LoginForm({
           onClick={onMicrosoftLogin}>
           {isAuthenticating ? <Spinner /> : null}
           {isAuthenticating ? (
-            <span>Authenticating...</span>
+            <span>{t("loginAuthenticating")}</span>
           ) : (
             <span className="inline-flex items-center gap-1.5">
-              <span>Continue with</span>
+              <span>{t("loginContinueWith")}</span>
               <svg
                 aria-hidden="true"
                 viewBox="0 0 24 24"
@@ -50,15 +53,14 @@ export function LoginForm({
                 <path fill="#00A4EF" d="M1 13h10v10H1z" />
                 <path fill="#FFB900" d="M13 13h10v10H13z" />
               </svg>
-              <span>Microsoft</span>
+              <span>{t("microsoftProvider")}</span>
             </span>
           )}
         </Button>
 
         {!isConfigured && (
           <p className="text-destructive text-center text-sm">
-            MS Entra ID is not configured in this build. Set ENTRA_CLIENT_ID and
-            ENTRA_TENANT_ID in environment.
+            {t("loginNotConfigured")}
           </p>
         )}
 
@@ -74,7 +76,7 @@ export function LoginForm({
                 fill="currentColor"
               />
             </svg>
-            Corporate login only
+            {t("loginCorporateOnly")}
           </Button>
         </div>
       </FieldGroup>

@@ -188,7 +188,11 @@ const LeafletMarkerClusterGroup = createLazyComponent(async () =>
 function Map({
     zoom = 15,
     maxZoom = 18,
+    zoomAnimation = false,
+    fadeAnimation = false,
+    markerZoomAnimation = false,
     className,
+    children,
     ...props
 }: Omit<MapContainerProps, "zoomControl"> & {
     center: LatLngExpression
@@ -198,15 +202,104 @@ function Map({
         <LeafletMapContainer
             zoom={zoom}
             maxZoom={maxZoom}
+            zoomAnimation={zoomAnimation}
+            fadeAnimation={fadeAnimation}
+            markerZoomAnimation={markerZoomAnimation}
             attributionControl={false}
             zoomControl={false}
-            className={cn(
-                "z-50 size-full min-h-96 flex-1 rounded-md",
-                className
-            )}
-            {...props}
-        />
+            className={cn("z-50 h-full w-full rounded-md", className)}
+            {...props}>
+            <MapAutoInvalidateSize />
+            {children}
+        </LeafletMapContainer>
     )
+}
+
+function MapAutoInvalidateSize() {
+    const map = useMap()
+
+    useEffect(() => {
+        const container = map.getContainer()
+        const parent = container.parentElement
+        const grandParent = parent?.parentElement
+        let frameId: number | null = null
+        let lastWidth = container.clientWidth
+        let lastHeight = container.clientHeight
+
+        const invalidate = () => {
+            frameId = null
+            map.invalidateSize({ pan: false })
+        }
+
+        const scheduleInvalidate = () => {
+            if (frameId !== null) {
+                cancelAnimationFrame(frameId)
+            }
+            frameId = requestAnimationFrame(invalidate)
+        }
+
+        const checkSizeAndInvalidate = () => {
+            const currentWidth = container.clientWidth
+            const currentHeight = container.clientHeight
+            if (currentWidth === lastWidth && currentHeight === lastHeight) {
+                return
+            }
+            lastWidth = currentWidth
+            lastHeight = currentHeight
+            scheduleInvalidate()
+        }
+
+        scheduleInvalidate()
+        const t1 = setTimeout(scheduleInvalidate, 150)
+        const t2 = setTimeout(scheduleInvalidate, 400)
+        const t3 = setTimeout(scheduleInvalidate, 800)
+        const t4 = setTimeout(scheduleInvalidate, 1400)
+
+        window.addEventListener("resize", checkSizeAndInvalidate)
+        const onLayoutChange = () => {
+            scheduleInvalidate()
+            setTimeout(scheduleInvalidate, 120)
+            setTimeout(scheduleInvalidate, 260)
+            setTimeout(scheduleInvalidate, 420)
+        }
+        window.addEventListener("nexus:layout-change", onLayoutChange)
+        container.addEventListener("transitionend", checkSizeAndInvalidate)
+        parent?.addEventListener("transitionend", checkSizeAndInvalidate)
+        grandParent?.addEventListener("transitionend", checkSizeAndInvalidate)
+
+        const observer =
+            typeof ResizeObserver !== "undefined"
+                ? new ResizeObserver(checkSizeAndInvalidate)
+                : null
+        observer?.observe(container)
+        if (parent) {
+            observer?.observe(parent)
+        }
+        if (grandParent) {
+            observer?.observe(grandParent)
+        }
+
+        return () => {
+            if (frameId !== null) {
+                cancelAnimationFrame(frameId)
+            }
+            clearTimeout(t1)
+            clearTimeout(t2)
+            clearTimeout(t3)
+            clearTimeout(t4)
+            observer?.disconnect()
+            window.removeEventListener("resize", checkSizeAndInvalidate)
+            window.removeEventListener("nexus:layout-change", onLayoutChange)
+            container.removeEventListener("transitionend", checkSizeAndInvalidate)
+            parent?.removeEventListener("transitionend", checkSizeAndInvalidate)
+            grandParent?.removeEventListener(
+                "transitionend",
+                checkSizeAndInvalidate
+            )
+        }
+    }, [map])
+
+    return null
 }
 
 interface MapTileLayerOption {
@@ -280,7 +373,7 @@ function MapTileLayer({
                 attribution: resolvedAttribution,
             })
         }
-    }, [context, name, url, attribution])
+    }, [context, name, resolvedUrl, resolvedAttribution])
 
     if (context && context.selectedTileLayer !== name) {
         return null
@@ -387,10 +480,21 @@ function MapLayers({
 
     function registerTileLayer(tileLayer: MapTileLayerOption) {
         setTileLayers((prevTileLayers) => {
-            if (prevTileLayers.some((layer) => layer.name === tileLayer.name)) {
+            const existingLayer = prevTileLayers.find(
+                (layer) => layer.name === tileLayer.name
+            )
+            if (!existingLayer) {
+                return [...prevTileLayers, tileLayer]
+            }
+            if (
+                existingLayer.url === tileLayer.url &&
+                existingLayer.attribution === tileLayer.attribution
+            ) {
                 return prevTileLayers
             }
-            return [...prevTileLayers, tileLayer]
+            return prevTileLayers.map((layer) =>
+                layer.name === tileLayer.name ? tileLayer : layer
+            )
         })
     }
 

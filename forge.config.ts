@@ -11,6 +11,7 @@ const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
     icon: "images/avell.ico",
+    appUserModelId: "com.squirrel.nexus.nexus",
   },
   rebuildConfig: {},
   makers: [

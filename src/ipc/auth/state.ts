@@ -53,6 +53,33 @@ let isAuthenticating = false;
 let authError: string | null = null;
 let isHydratingSession = false;
 let hydrationPromise: Promise<void> | null = null;
+let avatarUrl: string | null = null;
+
+async function resolveAvatarFromEntra(accessToken?: string): Promise<string | null> {
+  if (!accessToken) {
+    return null;
+  }
+
+  try {
+    const response = await fetch("https://graph.microsoft.com/v1.0/me/photo/$value", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const mimeType = response.headers.get("content-type") ?? "image/jpeg";
+    const imageBuffer = await response.arrayBuffer();
+    const base64Image = Buffer.from(imageBuffer).toString("base64");
+
+    return `data:${mimeType};base64,${base64Image}`;
+  } catch {
+    return null;
+  }
+}
 
 async function persistTokenCache() {
   if (!pca) return;
@@ -92,14 +119,17 @@ async function hydrateSessionFromCache() {
         account: primaryAccount,
         scopes: msalConfig.scopes,
       });
+      avatarUrl = await resolveAvatarFromEntra(authResult.accessToken);
       await persistTokenCache();
     } catch {
       authResult = {
         account: primaryAccount,
       } as AuthenticationResult;
+      avatarUrl = null;
     }
   } catch (error) {
     authResult = null;
+    avatarUrl = null;
     authError = error instanceof Error ? error.message : String(error);
   } finally {
     isHydratingSession = false;
@@ -114,6 +144,7 @@ function getAuthUser(): AuthUser | null {
   return {
     name: authResult.account.name ?? null,
     username: authResult.account.username ?? null,
+    avatarUrl,
   };
 }
 
@@ -152,14 +183,17 @@ async function signInWithEntra(): Promise<AuthStatus> {
 
     if (deviceCodeResult) {
       authResult = deviceCodeResult;
+      avatarUrl = await resolveAvatarFromEntra(deviceCodeResult.accessToken);
       authError = null;
       await persistTokenCache();
     } else {
       authResult = null;
+      avatarUrl = null;
       authError = "Device code authentication did not return a token.";
     }
   } catch (error) {
     authResult = null;
+    avatarUrl = null;
     authError = error instanceof Error ? error.message : String(error);
   } finally {
     isAuthenticating = false;
@@ -174,6 +208,7 @@ async function signOutFromEntra(): Promise<AuthStatus> {
   }
 
   authResult = null;
+  avatarUrl = null;
   isAuthenticating = false;
   authError = null;
 
