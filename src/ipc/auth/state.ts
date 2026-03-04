@@ -176,8 +176,21 @@ async function signInWithEntra(): Promise<AuthStatus> {
     const deviceCodeResult = await pca.acquireTokenByDeviceCode({
       scopes: msalConfig.scopes,
       deviceCodeCallback: (response) => {
-        void shell.openExternal(response.verificationUri);
-        authError = `Use code ${response.userCode} to complete sign-in in your browser.`;
+        const verificationUrl =
+          (response as { verificationUriComplete?: string }).verificationUriComplete ??
+          response.verificationUri;
+
+        if (verificationUrl) {
+          void shell.openExternal(verificationUrl);
+        }
+
+        if (response.userCode) {
+          authError = `Use code ${response.userCode} to complete sign-in in your browser.`;
+        } else if (response.message) {
+          authError = response.message;
+        } else {
+          authError = "Complete sign-in in your browser.";
+        }
       },
     });
 
