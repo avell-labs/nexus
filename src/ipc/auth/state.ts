@@ -28,6 +28,31 @@ function parseScopes(rawValue?: string): string[] {
     .filter(Boolean);
 }
 
+function formatAuthError(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return String(error);
+  }
+
+  const details = error as Error & {
+    errorCode?: string;
+    subError?: string;
+    correlationId?: string;
+    statusCode?: number;
+  };
+
+  const baseMessage = error.message || "Authentication failed.";
+  const extraParts = [
+    details.errorCode ? `code=${details.errorCode}` : null,
+    details.subError ? `subError=${details.subError}` : null,
+    details.statusCode ? `status=${details.statusCode}` : null,
+    details.correlationId ? `correlationId=${details.correlationId}` : null,
+  ].filter(Boolean);
+
+  return extraParts.length > 0
+    ? `${baseMessage} (${extraParts.join(", ")})`
+    : baseMessage;
+}
+
 const msalConfig = {
   clientId: normalizeEnv(process.env.ENTRA_CLIENT_ID),
   tenantId: normalizeEnv(process.env.ENTRA_TENANT_ID),
@@ -46,7 +71,10 @@ const pca = isConfigured
       },
     })
   : null;
-const tokenCacheFilePath = path.join(app.getPath("userData"), "msal-cache.json");
+const tokenCacheFilePath = path.join(
+  app.getPath("userData"),
+  "msal-cache.json",
+);
 
 let authResult: AuthenticationResult | null = null;
 let isAuthenticating = false;
@@ -55,17 +83,22 @@ let isHydratingSession = false;
 let hydrationPromise: Promise<void> | null = null;
 let avatarUrl: string | null = null;
 
-async function resolveAvatarFromEntra(accessToken?: string): Promise<string | null> {
+async function resolveAvatarFromEntra(
+  accessToken?: string,
+): Promise<string | null> {
   if (!accessToken) {
     return null;
   }
 
   try {
-    const response = await fetch("https://graph.microsoft.com/v1.0/me/photo/$value", {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
+    const response = await fetch(
+      "https://graph.microsoft.com/v1.0/me/photo/$value",
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
       },
-    });
+    );
 
     if (!response.ok) {
       return null;
@@ -130,7 +163,7 @@ async function hydrateSessionFromCache() {
   } catch (error) {
     authResult = null;
     avatarUrl = null;
-    authError = error instanceof Error ? error.message : String(error);
+    authError = formatAuthError(error);
   } finally {
     isHydratingSession = false;
   }
@@ -177,8 +210,8 @@ async function signInWithEntra(): Promise<AuthStatus> {
       scopes: msalConfig.scopes,
       deviceCodeCallback: (response) => {
         const verificationUrl =
-          (response as { verificationUriComplete?: string }).verificationUriComplete ??
-          response.verificationUri;
+          (response as { verificationUriComplete?: string })
+            .verificationUriComplete ?? response.verificationUri;
 
         if (verificationUrl) {
           void shell.openExternal(verificationUrl);
@@ -207,7 +240,7 @@ async function signInWithEntra(): Promise<AuthStatus> {
   } catch (error) {
     authResult = null;
     avatarUrl = null;
-    authError = error instanceof Error ? error.message : String(error);
+    authError = formatAuthError(error);
   } finally {
     isAuthenticating = false;
   }
