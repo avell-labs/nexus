@@ -6,6 +6,7 @@ import { updateAppLanguage } from "./actions/language";
 import { RouterProvider } from "@tanstack/react-router";
 import { router } from "./utils/routes";
 import "./localization/i18n";
+import { AppPreferencesProvider } from "@/components/app-preferences-provider";
 
 export default function App() {
   const { i18n } = useTranslation();
@@ -15,7 +16,11 @@ export default function App() {
     updateAppLanguage(i18n);
   }, [i18n]);
 
-  return <RouterProvider router={router} />;
+  return (
+    <AppPreferencesProvider>
+      <RouterProvider router={router} />
+    </AppPreferencesProvider>
+  );
 }
 
 const root = createRoot(document.getElementById("app")!);

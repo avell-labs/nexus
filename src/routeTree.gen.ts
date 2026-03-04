@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TrackingPageRouteImport } from './routes/trackingPage'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as Search_assistanceRouteImport } from './routes/search_assistance'
 import { Route as IndexRouteImport } from './routes/index'
 
 const TrackingPageRoute = TrackingPageRouteImport.update({
   id: '/trackingPage',
   path: '/trackingPage',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const Search_assistanceRoute = Search_assistanceRouteImport.update({
@@ -32,30 +38,34 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/search_assistance': typeof Search_assistanceRoute
+  '/settings': typeof SettingsRoute
   '/trackingPage': typeof TrackingPageRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/search_assistance': typeof Search_assistanceRoute
+  '/settings': typeof SettingsRoute
   '/trackingPage': typeof TrackingPageRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/search_assistance': typeof Search_assistanceRoute
+  '/settings': typeof SettingsRoute
   '/trackingPage': typeof TrackingPageRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/search_assistance' | '/trackingPage'
+  fullPaths: '/' | '/search_assistance' | '/settings' | '/trackingPage'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/search_assistance' | '/trackingPage'
-  id: '__root__' | '/' | '/search_assistance' | '/trackingPage'
+  to: '/' | '/search_assistance' | '/settings' | '/trackingPage'
+  id: '__root__' | '/' | '/search_assistance' | '/settings' | '/trackingPage'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   Search_assistanceRoute: typeof Search_assistanceRoute
+  SettingsRoute: typeof SettingsRoute
   TrackingPageRoute: typeof TrackingPageRoute
 }
 
@@ -66,6 +76,13 @@ declare module '@tanstack/react-router' {
       path: '/trackingPage'
       fullPath: '/trackingPage'
       preLoaderRoute: typeof TrackingPageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/search_assistance': {
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   Search_assistanceRoute: Search_assistanceRoute,
+  SettingsRoute: SettingsRoute,
   TrackingPageRoute: TrackingPageRoute,
 }
 export const routeTree = rootRouteImport

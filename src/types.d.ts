@@ -3,3 +3,12 @@
 // whether you're running in development or production).
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
 declare const MAIN_WINDOW_VITE_NAME: string;
+
+interface ImportMetaEnv {
+  readonly DEV: boolean;
+  readonly VITE_AUTH_BYPASS?: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}

@@ -11,6 +11,11 @@ permissions:
 jobs:
   publish-release:
     runs-on: windows-latest
+    env:
+      ENTRA_CLIENT_ID: ${{ secrets.ENTRA_CLIENT_ID }}
+      ENTRA_TENANT_ID: ${{ secrets.ENTRA_TENANT_ID }}
+      ENTRA_SCOPES: ${{ secrets.ENTRA_SCOPES }}
+      ENTRA_AUTHORITY: ${{ secrets.ENTRA_AUTHORITY }}
 
     steps:
       - uses: actions/checkout@v4
@@ -21,6 +26,13 @@ jobs:
           cache: npm
 
       - run: npm ci
+
+      - name: Validate Entra Build Variables
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:ENTRA_CLIENT_ID)) { throw "Missing secret: ENTRA_CLIENT_ID" }
+          if ([string]::IsNullOrWhiteSpace($env:ENTRA_TENANT_ID)) { throw "Missing secret: ENTRA_TENANT_ID" }
+          Write-Host "Entra build vars are present."
 
       - run: npm run inject:assistances
         env:
