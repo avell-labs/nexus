@@ -1,7 +1,7 @@
 {
   "name": "nexus",
   "productName": "nexus",
-  "version": "2.0.5",
+  "version": "2.0.6",
   "description": "App for Avell's technical support team",
   "main": ".vite/build/main.js",
   "private": true,
