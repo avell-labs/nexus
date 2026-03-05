@@ -8,20 +8,23 @@ interface AccentPalette {
   dark: Record<string, string>;
 }
 
+const accentTokens = [
+  "--primary",
+  "--primary-foreground",
+  "--ring",
+  "--accent",
+  "--accent-foreground",
+  "--sidebar-primary",
+  "--sidebar-primary-foreground",
+  "--sidebar-accent",
+  "--sidebar-accent-foreground",
+  "--sidebar-ring",
+] as const;
+
 const accentPalettes: Record<AccentName, AccentPalette> = {
   slate: {
-    light: {
-      "--primary": "oklch(0.205 0 0)",
-      "--primary-foreground": "oklch(0.985 0 0)",
-      "--sidebar-primary": "oklch(0.205 0 0)",
-      "--sidebar-primary-foreground": "oklch(0.985 0 0)",
-    },
-    dark: {
-      "--primary": "oklch(0.87 0 0)",
-      "--primary-foreground": "oklch(0.205 0 0)",
-      "--sidebar-primary": "oklch(0.87 0 0)",
-      "--sidebar-primary-foreground": "oklch(0.205 0 0)",
-    },
+    light: {},
+    dark: {},
   },
   ocean: {
     light: {
@@ -131,6 +134,10 @@ function applyAccent(accent: AccentName) {
   const root = document.documentElement;
   const isDarkMode = root.classList.contains("dark");
   const selectedPalette = accentPalettes[accent][isDarkMode ? "dark" : "light"];
+
+  for (const token of accentTokens) {
+    root.style.removeProperty(token);
+  }
 
   for (const [token, value] of Object.entries(selectedPalette)) {
     root.style.setProperty(token, value);
