@@ -31,6 +31,8 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
       - name: Create Executable
+        env:
+          E2E: "true"
         run: npm run make
       - name: Run Playwright tests
         run: npm run test:e2e

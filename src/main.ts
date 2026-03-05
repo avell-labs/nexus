@@ -1,5 +1,6 @@
 import { app, autoUpdater, BrowserWindow } from "electron";
 import path from "path";
+import started from "electron-squirrel-startup";
 import {
   installExtension,
   REACT_DEVELOPER_TOOLS,
@@ -14,6 +15,10 @@ const inDevelopment = process.env.NODE_ENV === "development";
 
 // Workaround for Chromium GPU tile rendering artifacts seen on some Windows setups.
 app.disableHardwareAcceleration();
+
+if (started) {
+  app.quit();
+}
 
 if (process.platform === "win32") {
   app.setAppUserModelId("com.squirrel.nexus.nexus");
@@ -54,6 +59,10 @@ function createWindow() {
 }
 
 async function installExtensions() {
+  if (!inDevelopment) {
+    return;
+  }
+
   try {
     const result = await installExtension(REACT_DEVELOPER_TOOLS);
     console.log(`Extensions installed successfully: ${result.name}`);

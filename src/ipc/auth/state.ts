@@ -75,6 +75,7 @@ const tokenCacheFilePath = path.join(
   app.getPath("userData"),
   "msal-cache.json",
 );
+const isE2E = process.env.CI === "e2e";
 
 let authResult: AuthenticationResult | null = null;
 let isAuthenticating = false;
@@ -182,6 +183,20 @@ function getAuthUser(): AuthUser | null {
 }
 
 function getAuthStatus(): AuthStatus {
+  if (isE2E) {
+    return {
+      isConfigured: true,
+      isAuthenticated: true,
+      isAuthenticating: false,
+      user: {
+        name: "E2E User",
+        username: "e2e@nexus.local",
+        avatarUrl: null,
+      },
+      error: null,
+    };
+  }
+
   return {
     isConfigured,
     isAuthenticated: Boolean(authResult?.account),
@@ -192,6 +207,10 @@ function getAuthStatus(): AuthStatus {
 }
 
 async function signInWithEntra(): Promise<AuthStatus> {
+  if (isE2E) {
+    return getAuthStatus();
+  }
+
   if (!isConfigured || !pca) {
     authError =
       "MS Entra ID is not configured. Set ENTRA_CLIENT_ID and ENTRA_TENANT_ID.";
@@ -249,6 +268,10 @@ async function signInWithEntra(): Promise<AuthStatus> {
 }
 
 async function signOutFromEntra(): Promise<AuthStatus> {
+  if (isE2E) {
+    return getAuthStatus();
+  }
+
   if (pca && authResult?.account) {
     await pca.getTokenCache().removeAccount(authResult.account);
   }

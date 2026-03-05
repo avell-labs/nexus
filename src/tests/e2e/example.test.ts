@@ -15,19 +15,44 @@ import { findLatestBuild, parseElectronApp } from "electron-playwright-helpers";
 let electronApp: ElectronApplication;
 let page: Page;
 
+function getPackagedAppInfo() {
+  try {
+    const latestBuild = findLatestBuild();
+    const appInfo = parseElectronApp(latestBuild);
+
+    if (!appInfo.executable) {
+      throw new Error("No executable path found in packaged build.");
+    }
+
+    return { latestBuild, appInfo };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Unable to resolve packaged Electron build. Reason: ${reason}`,
+    );
+  }
+}
+
 test.beforeAll(async () => {
-  const latestBuild = findLatestBuild();
-  const appInfo = parseElectronApp(latestBuild);
+  const { latestBuild, appInfo } = getPackagedAppInfo();
   process.env.CI = "e2e";
 
-  electronApp = await electron.launch({
-    executablePath: appInfo.executable,
-    args: [],
-    env: {
-      ...process.env,
-      CI: "e2e",
-    },
-  });
+  try {
+    electronApp = await electron.launch({
+      executablePath: appInfo.executable,
+      args: [],
+      env: {
+        ...process.env,
+        CI: "e2e",
+      },
+    });
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Failed to launch packaged app. build="${latestBuild}" executable="${appInfo.executable}" reason="${reason}"`,
+    );
+  }
+
   electronApp.on("window", async (page) => {
     const filename = page.url()?.split("/").pop();
     console.log(`Window opened: ${filename}`);
@@ -40,8 +65,16 @@ test.beforeAll(async () => {
     });
   });
 
-  page = await electronApp.firstWindow();
-  await page.waitForLoadState("domcontentloaded");
+  try {
+    page = await electronApp.firstWindow({ timeout: 60_000 });
+    await page.waitForLoadState("domcontentloaded", { timeout: 30_000 });
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    await electronApp.close();
+    throw new Error(
+      `Electron app launched but first window did not become ready. build="${latestBuild}" reason="${reason}"`,
+    );
+  }
 });
 
 test.afterAll(async () => {
@@ -52,16 +85,19 @@ test.afterAll(async () => {
 
 test.afterEach(async () => {
   await page.unroute("https://nominatim.openstreetmap.org/**");
-  await page.unroute("https://router.project-osrm.org/**");
 });
 
-test("renders home with update actions", async () => {
-  await expect(page.getByTestId("home-card")).toBeVisible();
-  await expect(page.getByTestId("home-title")).toBeVisible();
-  await expect(page.getByTestId("check-updates-button")).toBeVisible();
+test("renders authenticated shell navigation", async () => {
+  await expect(page.locator('a[href="/search_assistance"]').first()).toBeVisible();
+  await expect(page.locator('a[href="/trackingPage"]').first()).toBeVisible();
+  await expect(
+    page
+      .getByRole("button", { name: /toggle sidebar|alternar barra lateral/i })
+      .first(),
+  ).toBeVisible();
 });
 
-test("searches assistance in same city and requests route", async () => {
+test("searches assistance in same city", async () => {
   await page.route("https://nominatim.openstreetmap.org/**", async (route) => {
     await route.fulfill({
       status: 200,
@@ -79,36 +115,12 @@ test("searches assistance in same city and requests route", async () => {
     });
   });
 
-  await page.route("https://router.project-osrm.org/**", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        routes: [
-          {
-            geometry: {
-              coordinates: [
-                [-48.84021, -26.25349],
-                [-48.842, -26.2545],
-              ],
-            },
-          },
-        ],
-      }),
-    });
-  });
-
-  await page.getByTestId("nav-search-assistance").click();
+  await page.locator('a[href="/search_assistance"]').first().click();
   await expect(page.getByTestId("search-assistance-input")).toBeVisible();
-
-  const routeRequestPromise = page.waitForRequest(
-    /router\.project-osrm\.org\/route\/v1\/driving/,
-  );
 
   await page.getByTestId("search-assistance-input").fill("Joinville, SC");
   await page.getByTestId("search-assistance-submit").click();
 
-  await routeRequestPromise;
   await expect(page.getByTestId("nearest-assistance-card")).toBeVisible();
   await expect(page.getByText("Avell Joinville")).toBeVisible();
   await expect(page.getByTestId("search-no-city-results")).toHaveCount(0);
@@ -132,13 +144,7 @@ test("falls back to nearest assistance without route when city has no match", as
     });
   });
 
-  let routeRequests = 0;
-  await page.route("https://router.project-osrm.org/**", async (route) => {
-    routeRequests += 1;
-    await route.abort();
-  });
-
-  await page.getByTestId("nav-search-assistance").click();
+  await page.locator('a[href="/search_assistance"]').first().click();
   await page.getByTestId("search-assistance-input").fill(
     "Cidade Sem Assistencia",
   );
@@ -146,5 +152,4 @@ test("falls back to nearest assistance without route when city has no match", as
 
   await expect(page.getByTestId("nearest-assistance-card")).toBeVisible();
   await expect(page.getByTestId("search-no-city-results")).toBeVisible();
-  expect(routeRequests).toBe(0);
 });

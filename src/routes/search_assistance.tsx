@@ -25,14 +25,13 @@ import {
   geocodeSearchQuery,
   normalizeSearchQuery,
 } from "@/services/geocoding-service";
-import type { Coordinates, NearestAssistanceResult } from "@/types/assistance";
+import type { NearestAssistanceResult } from "@/types/assistance";
 
 type SearchStatus = "idle" | "loading" | "success" | "empty" | "error";
 
 interface SearchState {
   status: SearchStatus;
   errorMessage: string | null;
-  geocodedLocation: Coordinates | null;
   nearestResult: NearestAssistanceResult | null;
   hasCityMatch: boolean;
 }
@@ -46,7 +45,6 @@ function SearchAssistancePage() {
   const [searchState, setSearchState] = React.useState<SearchState>({
     status: "idle",
     errorMessage: null,
-    geocodedLocation: null,
     nearestResult: null,
     hasCityMatch: false,
   });
@@ -67,7 +65,6 @@ function SearchAssistancePage() {
       setSearchState({
         status: "idle",
         errorMessage: null,
-        geocodedLocation: null,
         nearestResult: null,
         hasCityMatch: false,
       });
@@ -105,7 +102,6 @@ function SearchAssistancePage() {
           setSearchState({
             status: "empty",
             errorMessage: t("searchNoResults"),
-            geocodedLocation: geocodingResult.coordinates,
             nearestResult: null,
             hasCityMatch: false,
           });
@@ -116,7 +112,6 @@ function SearchAssistancePage() {
         setSearchState({
           status: "success",
           errorMessage: null,
-          geocodedLocation: geocodingResult.coordinates,
           nearestResult,
           hasCityMatch: Boolean(nearestInCity),
         });
@@ -129,7 +124,6 @@ function SearchAssistancePage() {
         setSearchState({
           status: "error",
           errorMessage: isInvalid ? t("searchInvalid") : t("searchError"),
-          geocodedLocation: null,
           nearestResult: null,
           hasCityMatch: false,
         });
