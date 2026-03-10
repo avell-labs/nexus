@@ -7,6 +7,12 @@ declare const MAIN_WINDOW_VITE_NAME: string;
 interface ImportMetaEnv {
   readonly DEV: boolean;
   readonly VITE_AUTH_BYPASS?: string;
+  readonly FIREBASE_API_KEY?: string;
+  readonly FIREBASE_AUTH_DOMAIN?: string;
+  readonly FIREBASE_PROJECT_ID?: string;
+  readonly FIREBASE_STORAGE_BUCKET?: string;
+  readonly FIREBASE_MESSAGING_SENDER_ID?: string;
+  readonly FIREBASE_APP_ID?: string;
 }
 
 interface ImportMeta {

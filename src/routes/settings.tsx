@@ -3,12 +3,16 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { setTheme } from "@/actions/theme";
 import { setAppLanguage } from "@/actions/language";
-import { checkForUpdates, getAppVersion, getUpdateStatus } from "@/actions/app";
+import {
+  checkForUpdates,
+  getAppVersion,
+  getUpdateStatus,
+  getSystemInfo,
+} from "@/actions/app";
 import { openExternalLink } from "@/actions/shell";
 import { useAppPreferences } from "@/components/app-preferences-provider";
 import { LOCAL_STORAGE_KEYS } from "@/constants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -18,22 +22,55 @@ import type { ThemeMode } from "@/types/theme-mode";
 import {
   BugIcon,
   DicesIcon,
-  GithubIcon,
+  Github,
   LoaderCircle,
   RefreshCw,
 } from "lucide-react";
+import { FaMicrosoft, FaLinux, FaApple } from "react-icons/fa";
 import type { UpdateStatusStage } from "@/ipc/app/update-state";
 import DiceBox from "@3d-dice/dice-box";
 import "@3d-dice/dice-box/dist/style.css";
 
 type AccentName = "slate" | "ocean" | "rose" | "sunset";
 
+const availableIcons = [
+  { name: "avell", label: "Avell" },
+  { name: "banana", label: "Banana" },
+  { name: "dark", label: "Dark" },
+  { name: "light", label: "Light" },
+  { name: "ocean", label: "Ocean" },
+  { name: "pastel", label: "Pastel" },
+  { name: "rose", label: "Rose" },
+] as const;
+
+const getOsIcon = (platform: string) => {
+  switch (platform) {
+    case "win32":
+      return <FaMicrosoft className="h-3 w-3" />;
+    case "darwin":
+      return <FaApple className="h-3 w-3" />;
+    case "linux":
+      return <FaLinux className="h-3 w-3" />;
+    default:
+      return <FaMicrosoft className="h-3 w-3" />;
+  }
+};
+
 function SettingsPage() {
   const { t, i18n } = useTranslation();
-  const { accent, setAccent, preferredName, setPreferredName } =
-    useAppPreferences();
+  const { accent, setAccent, theme } = useAppPreferences();
   const [selectedTheme, setSelectedTheme] = React.useState<ThemeMode>("system");
   const [version, setVersion] = React.useState("-");
+  const [systemInfo, setSystemInfo] = React.useState<{
+    osName: string;
+    osVersion: string;
+    osBuild: string;
+    osEdition: string;
+    platform: string;
+    windowsVersion: string | null;
+    windowsFeatureVersion: string | null;
+    windowsBuildNumber: string | null;
+  } | null>(null);
   const [, setUpdateStage] = React.useState<UpdateStatusStage>("idle");
   const [isCheckingUpdate, setIsCheckingUpdate] = React.useState(false);
   const [updateButtonStatus, setUpdateButtonStatus] = React.useState<
@@ -42,6 +79,7 @@ function SettingsPage() {
   const [isRollingD20, setIsRollingD20] = React.useState(false);
   const [showDiceOverlay, setShowDiceOverlay] = React.useState(false);
   const [d20Error, setD20Error] = React.useState<string | null>(null);
+  const [selectedIcon, setSelectedIcon] = React.useState("avell");
   const diceBoxRef = React.useRef<DiceBox | null>(null);
   const diceBoxInitPromiseRef = React.useRef<Promise<DiceBox> | null>(null);
   const rollTimeoutRef = React.useRef<number | null>(null);
@@ -76,6 +114,10 @@ function SettingsPage() {
       "system";
     setSelectedTheme(localTheme);
 
+    const savedIcon =
+      localStorage.getItem(LOCAL_STORAGE_KEYS.APP_ICON) ?? "avell";
+    setSelectedIcon(savedIcon);
+
     void getAppVersion()
       .then((nextVersion) => {
         if (!active) return;
@@ -84,6 +126,16 @@ function SettingsPage() {
       .catch(() => {
         if (!active) return;
         setVersion("-");
+      });
+
+    void getSystemInfo()
+      .then((info) => {
+        if (!active) return;
+        setSystemInfo(info);
+      })
+      .catch(() => {
+        if (!active) return;
+        setSystemInfo(null);
       });
 
     return () => {
@@ -102,24 +154,31 @@ function SettingsPage() {
     setAccent(nextAccent);
   }
 
+  async function handleIconChange(nextIcon: string) {
+    if (!nextIcon) return;
+    setSelectedIcon(nextIcon);
+    localStorage.setItem(LOCAL_STORAGE_KEYS.APP_ICON, nextIcon);
+    await setAppIcon(nextIcon);
+  }
+
   function handleLanguageChange(nextLanguage: string) {
     if (!nextLanguage) return;
     setAppLanguage(nextLanguage, i18n);
   }
 
-  const withTimeout = React.useCallback(async <T,>(
-    promise: Promise<T>,
-    timeoutMs: number,
-  ) => {
-    return await Promise.race<T>([
-      promise,
-      new Promise<T>((_, reject) => {
-        window.setTimeout(() => {
-          reject(new Error("DICE_TIMEOUT"));
-        }, timeoutMs);
-      }),
-    ]);
-  }, []);
+  const withTimeout = React.useCallback(
+    async <T,>(promise: Promise<T>, timeoutMs: number) => {
+      return await Promise.race<T>([
+        promise,
+        new Promise<T>((_, reject) => {
+          window.setTimeout(() => {
+            reject(new Error("DICE_TIMEOUT"));
+          }, timeoutMs);
+        }),
+      ]);
+    },
+    [],
+  );
 
   const initDiceBoxWithAssetPath = React.useCallback(
     async (assetPath: string) => {
@@ -257,7 +316,7 @@ function SettingsPage() {
       await withTimeout(
         diceBox.roll("1d20", {
           theme: "default",
-          themeColor: "dark",
+          themeColor: theme === "dark" ? "#ffffff" : "dark",
           newStartPoint: true,
         }),
         9000,
@@ -355,16 +414,15 @@ function SettingsPage() {
             <ToggleGroup
               type="single"
               value={selectedTheme}
-              onValueChange={(value) => void handleThemeChange(value as ThemeMode)}
+              onValueChange={(value) =>
+                void handleThemeChange(value as ThemeMode)
+              }
             >
               <ToggleGroupItem className={toggleItemClassName} value="light">
                 {t("themeLight")}
               </ToggleGroupItem>
               <ToggleGroupItem className={toggleItemClassName} value="dark">
                 {t("themeDark")}
-              </ToggleGroupItem>
-              <ToggleGroupItem className={toggleItemClassName} value="system">
-                {t("themeSystem")}
               </ToggleGroupItem>
             </ToggleGroup>
           </section>
@@ -390,8 +448,33 @@ function SettingsPage() {
               <ToggleGroupItem className={toggleItemClassName} value="sunset">
                 {t("accentSunset")}
               </ToggleGroupItem>
+              <ToggleGroupItem className={toggleItemClassName} value="pastel">
+                {t("accentPastel")}
+              </ToggleGroupItem>
+              <ToggleGroupItem className={toggleItemClassName} value="banana">
+                {t("accentBanana")}
+              </ToggleGroupItem>
             </ToggleGroup>
           </section>
+
+          {/* <section className="space-y-3">
+            <Label>{t("settingsAppIcon")}</Label>
+            <ToggleGroup
+              type="single"
+              value={selectedIcon}
+              onValueChange={(value) => void handleIconChange(value || "avell")}
+            >
+              {availableIcons.map((icon) => (
+                <ToggleGroupItem
+                  key={icon.name}
+                  className={toggleItemClassName}
+                  value={icon.name}
+                >
+                  {icon.label}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </section> */}
 
           <section className="space-y-3">
             <Label>{t("settingsLanguage")}</Label>
@@ -412,28 +495,20 @@ function SettingsPage() {
             </ToggleGroup>
           </section>
 
-          <section className="space-y-3">
-            <Label htmlFor="nickname-input">{t("settingsNickname")}</Label>
-            <Input
-              id="nickname-input"
-              value={preferredName}
-              placeholder={t("settingsNicknamePlaceholder")}
-              onChange={(event) => setPreferredName(event.target.value)}
-            />
-          </section>
-
           <Separator />
 
           <section className="space-y-3">
-            <Label>{t("settingsSupport")}</Label>
+            <Label>{t("settingsUpdates")}</Label>
             <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant="outline"
                 size="icon"
                 className="hover:border-primary hover:bg-primary/10 hover:text-primary transition-colors"
-                onClick={() => openExternalLink("https://github.com/avell-labs/nexus")}
+                onClick={() =>
+                  openExternalLink("https://github.com/avell-labs/nexus")
+                }
               >
-                <GithubIcon />
+                <Github />
               </Button>
               <Button
                 variant="outline"
@@ -459,10 +534,53 @@ function SettingsPage() {
                 )}
                 {updateButtonStatus ? updateButtonStatus : null}
               </Button>
-              <p className="text-muted-foreground text-xs">
-                {t("currentVersion")}: {version}
-              </p>
             </div>
+          </section>
+          <Separator />
+          <section className="space-y-3">
+            <Label>{t("osInfo")}</Label>
+            <div className="flex flex-wrap items-center gap-2"></div>
+            {systemInfo ? (
+              <div className="text-muted-foreground space-y-2 text-sm">
+                <p className="flex items-center gap-2">
+                  {getOsIcon(systemInfo.platform)}
+                  {t("osEdition")}: {systemInfo.osEdition}
+                </p>
+                {systemInfo.platform === "win32" ? (
+                  <>
+                    <p>
+                      {t("osVersion")}:{" "}
+                      {systemInfo.windowsFeatureVersion ?? systemInfo.osVersion}
+                    </p>
+                    {systemInfo.windowsBuildNumber ? (
+                      <p>
+                        {t("osCompilation")}: {systemInfo.windowsBuildNumber}
+                      </p>
+                    ) : (
+                      <p>
+                        {t("osCompilation")}: {systemInfo.osBuild}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <p>
+                      {t("osVersion")}: {systemInfo.osVersion}
+                    </p>
+                    <p>
+                      {t("osCompilation")}: {systemInfo.osBuild}
+                    </p>
+                  </>
+                )}
+                <p className="text-muted-foreground text-sm">
+                  {t("currentVersion")}: {version}
+                </p>
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                {t("settingsSystemInfoUnavailable")}
+              </p>
+            )}
           </section>
 
           <Separator />
@@ -471,7 +589,7 @@ function SettingsPage() {
             <Button
               variant="secondary"
               size="icon"
-              className="border border-transparent hover:border-primary hover:bg-primary/10 hover:text-primary transition-colors"
+              className="hover:border-primary hover:bg-primary/10 hover:text-primary border border-transparent transition-colors"
               onClick={() => void handleRollD20()}
               disabled={isRollingD20}
             >
@@ -489,7 +607,7 @@ function SettingsPage() {
       </Card>
       <div
         id="nexus-d20-overlay"
-        className={`pointer-events-none fixed inset-0 z-50 bg-black/80 [&_canvas]:block [&_canvas]:h-full [&_canvas]:w-full transition-opacity duration-300 ${
+        className={`pointer-events-none fixed inset-0 z-50 bg-black/80 transition-opacity duration-300 [&_canvas]:block [&_canvas]:h-full [&_canvas]:w-full ${
           showDiceOverlay ? "opacity-100" : "opacity-0"
         }`}
       />

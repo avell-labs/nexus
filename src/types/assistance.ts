@@ -5,6 +5,7 @@ export interface Coordinates {
 
 export interface AuthorizedAssistance {
   id: string;
+  score: number;
   name: string;
   type: string;
   address: string;

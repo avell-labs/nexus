@@ -1,12 +1,15 @@
 import {
   findNearestAssistanceFromList,
   findNearestAssistanceInCityFromList,
+  findNearestRecommendedAssistanceFromList,
+  findNearestRecommendedAssistanceInCityFromList,
 } from "@/services/assistance-service";
 import type { AuthorizedAssistance } from "@/types/assistance";
 
 const mockAssistances: AuthorizedAssistance[] = [
   {
     id: "joinville-a",
+    score: 2,
     name: "Joinville A",
     type: "Centro de Reparo",
     address: "Rua A, 100",
@@ -21,6 +24,7 @@ const mockAssistances: AuthorizedAssistance[] = [
   },
   {
     id: "joinville-b",
+    score: 4,
     name: "Joinville B",
     type: "Posto Autorizado",
     address: "Rua B, 200",
@@ -35,6 +39,7 @@ const mockAssistances: AuthorizedAssistance[] = [
   },
   {
     id: "curitiba-a",
+    score: 5,
     name: "Curitiba A",
     type: "Centro de Reparo",
     address: "Rua C, 300",
@@ -79,5 +84,30 @@ describe("assistance-service", () => {
 
     expect(result).not.toBeNull();
     expect(result!.distanceKm).toBeGreaterThanOrEqual(0);
+  });
+
+  it("skips low score assistances when recommending", () => {
+    const result = findNearestRecommendedAssistanceFromList(
+      { lat: -26.25349, lng: -48.84021 },
+      mockAssistances,
+    );
+
+    expect(result).not.toBeNull();
+    expect(result?.assistance.id).toBe("joinville-b");
+  });
+
+  it("returns null when city has only low score assistances", () => {
+    const result = findNearestRecommendedAssistanceInCityFromList(
+      { lat: -26.25349, lng: -48.84021 },
+      "Joinville",
+      [
+        {
+          ...mockAssistances[0],
+          score: 1,
+        },
+      ],
+    );
+
+    expect(result).toBeNull();
   });
 });

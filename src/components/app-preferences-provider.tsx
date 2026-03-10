@@ -1,7 +1,7 @@
 import { LOCAL_STORAGE_KEYS } from "@/constants";
 import * as React from "react";
 
-type AccentName = "slate" | "ocean" | "rose" | "sunset";
+type AccentName = "slate" | "ocean" | "rose" | "sunset" | "banana" | "pastel";
 
 interface AccentPalette {
   light: Record<string, string>;
@@ -104,9 +104,62 @@ const accentPalettes: Record<AccentName, AccentPalette> = {
       "--sidebar-ring": "#FD7924",
     },
   },
+  banana: {
+    light: {
+      "--primary": "#ECEF5B",
+      "--primary-foreground": "#2A2A00",
+      "--ring": "#ECEF5B",
+      "--accent": "#ECEF5B26",
+      "--accent-foreground": "#2A2A00",
+      "--sidebar-primary": "#ECEF5B",
+      "--sidebar-primary-foreground": "#2A2A00",
+      "--sidebar-accent": "#ECEF5B26",
+      "--sidebar-accent-foreground": "#2A2A00",
+      "--sidebar-ring": "#ECEF5B",
+    },
+    dark: {
+      "--primary": "#ECEF5B",
+      "--primary-foreground": "#111100",
+      "--ring": "#ECEF5B",
+      "--accent": "#ECEF5B40",
+      "--accent-foreground": "#FFFFE0",
+      "--sidebar-primary": "#ECEF5B",
+      "--sidebar-primary-foreground": "#111100",
+      "--sidebar-accent": "#ECEF5B40",
+      "--sidebar-accent-foreground": "#FFFFE0",
+      "--sidebar-ring": "#ECEF5B",
+    },
+  },
+  pastel: {
+    light: {
+      "--primary": "#A5BEFA",
+      "--primary-foreground": "#0F1A3A",
+      "--ring": "#A5BEFA",
+      "--accent": "#A5BEFA26",
+      "--accent-foreground": "#0F1A3A",
+      "--sidebar-primary": "#A5BEFA",
+      "--sidebar-primary-foreground": "#0F1A3A",
+      "--sidebar-accent": "#A5BEFA26",
+      "--sidebar-accent-foreground": "#0F1A3A",
+      "--sidebar-ring": "#A5BEFA",
+    },
+    dark: {
+      "--primary": "#A5BEFA",
+      "--primary-foreground": "#050B1A",
+      "--ring": "#A5BEFA",
+      "--accent": "#A5BEFA40",
+      "--accent-foreground": "#EEF2FF",
+      "--sidebar-primary": "#A5BEFA",
+      "--sidebar-primary-foreground": "#050B1A",
+      "--sidebar-accent": "#A5BEFA40",
+      "--sidebar-accent-foreground": "#EEF2FF",
+      "--sidebar-ring": "#A5BEFA",
+    },
+  },
 };
 
 interface AppPreferencesContextValue {
+  theme: "light" | "dark";
   accent: AccentName;
   setAccent: (accent: AccentName) => void;
   preferredName: string;
@@ -118,28 +171,36 @@ const AppPreferencesContext = React.createContext<
   AppPreferencesContextValue | undefined
 >(undefined);
 
-function normalizeAccent(
-  value: string | null,
-): AppPreferencesContextValue["accent"] {
-  if (value === "emerald") {
-    return "rose";
-  }
-  if (value === "ocean" || value === "rose" || value === "sunset") {
+function normalizeAccent(value: string | null): AccentName {
+  if (value === "emerald") return "rose";
+
+  if (
+    value === "ocean" ||
+    value === "rose" ||
+    value === "sunset" ||
+    value === "banana" ||
+    value === "pastel"
+  ) {
     return value;
   }
+
   return "slate";
+}
+
+function getCurrentTheme(): "light" | "dark" {
+  return document.documentElement.classList.contains("dark") ? "dark" : "light";
 }
 
 function applyAccent(accent: AccentName) {
   const root = document.documentElement;
   const isDarkMode = root.classList.contains("dark");
-  const selectedPalette = accentPalettes[accent][isDarkMode ? "dark" : "light"];
+  const palette = accentPalettes[accent][isDarkMode ? "dark" : "light"];
 
   for (const token of accentTokens) {
     root.style.removeProperty(token);
   }
 
-  for (const [token, value] of Object.entries(selectedPalette)) {
+  for (const [token, value] of Object.entries(palette)) {
     root.style.setProperty(token, value);
   }
 }
@@ -151,11 +212,13 @@ export function AppPreferencesProvider({
 }) {
   const [accent, setAccentState] = React.useState<AccentName>("slate");
   const [preferredName, setPreferredNameState] = React.useState("");
+  const [theme, setTheme] = React.useState<"light" | "dark">(getCurrentTheme());
 
   React.useEffect(() => {
     const savedAccent = normalizeAccent(
       localStorage.getItem(LOCAL_STORAGE_KEYS.APP_ACCENT),
     );
+
     const savedName = localStorage.getItem(LOCAL_STORAGE_KEYS.PREFERRED_NAME);
 
     setAccentState(savedAccent);
@@ -169,6 +232,8 @@ export function AppPreferencesProvider({
 
   React.useEffect(() => {
     const observer = new MutationObserver(() => {
+      const currentTheme = getCurrentTheme();
+      setTheme(currentTheme);
       applyAccent(accent);
     });
 
@@ -200,14 +265,8 @@ export function AppPreferencesProvider({
 
   const resolveDisplayName = React.useCallback(
     (name: string | null | undefined) => {
-      if (preferredName) {
-        return preferredName;
-      }
-
-      if (name) {
-        return name;
-      }
-
+      if (preferredName) return preferredName;
+      if (name) return name;
       return "User";
     },
     [preferredName],
@@ -216,6 +275,7 @@ export function AppPreferencesProvider({
   return (
     <AppPreferencesContext.Provider
       value={{
+        theme,
         accent,
         setAccent,
         preferredName,
@@ -230,6 +290,7 @@ export function AppPreferencesProvider({
 
 export function useAppPreferences() {
   const context = React.useContext(AppPreferencesContext);
+
   if (!context) {
     throw new Error(
       "useAppPreferences must be used inside AppPreferencesProvider.",

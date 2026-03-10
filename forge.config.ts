@@ -12,7 +12,7 @@ const isE2EBuild = process.env.CI === "e2e" || process.env.E2E === "true";
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
-    icon: "images/avell.ico",
+    icon: "images/ico/avell.ico",
     appUserModelId: "com.squirrel.nexus.nexus",
   },
   rebuildConfig: {},
@@ -21,7 +21,7 @@ const config: ForgeConfig = {
       name: "nexus",
       authors: "Marcelo Machado",
       description: "App for Avell's technical support team",
-      setupIcon: "images/avell.ico",
+      setupIcon: "images/ico/avell.ico",
       // loadingGif: "images/installer.gif",
     }),
     new MakerZIP({}, ["darwin"]),

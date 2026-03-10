@@ -20,6 +20,8 @@ import {
 import {
   findNearestAssistance,
   findNearestAssistanceInCity,
+  findNearestRecommendedAssistance,
+  findNearestRecommendedAssistanceInCity,
 } from "@/services/assistance-service";
 import {
   geocodeSearchQuery,
@@ -33,7 +35,6 @@ interface SearchState {
   status: SearchStatus;
   errorMessage: string | null;
   nearestResult: NearestAssistanceResult | null;
-  hasCityMatch: boolean;
 }
 
 function SearchAssistancePage() {
@@ -42,11 +43,11 @@ function SearchAssistancePage() {
   const [debouncedQuery, setDebouncedQuery] = React.useState("");
   const [isOpen, setIsOpen] = React.useState(false);
   const [copyState, setCopyState] = React.useState<"idle" | "copied">("idle");
+  const [ignoreScore, setIgnoreScore] = React.useState(false);
   const [searchState, setSearchState] = React.useState<SearchState>({
     status: "idle",
     errorMessage: null,
     nearestResult: null,
-    hasCityMatch: false,
   });
 
   const requestIdRef = React.useRef(0);
@@ -66,14 +67,14 @@ function SearchAssistancePage() {
         status: "idle",
         errorMessage: null,
         nearestResult: null,
-        hasCityMatch: false,
       });
       setIsOpen(false);
       return;
     }
 
-    if (lastSearchKeyRef.current === normalized) return;
-    lastSearchKeyRef.current = normalized;
+    const searchKey = `${normalized}|${ignoreScore ? "distance" : "recommended"}`;
+    if (lastSearchKeyRef.current === searchKey) return;
+    lastSearchKeyRef.current = searchKey;
 
     const requestId = requestIdRef.current + 1;
     requestIdRef.current = requestId;
@@ -88,13 +89,23 @@ function SearchAssistancePage() {
       try {
         const geocodingResult = await geocodeSearchQuery(normalized);
         const nearestInCity = geocodingResult.city
-          ? findNearestAssistanceInCity(
-              geocodingResult.coordinates,
-              geocodingResult.city,
-            )
+          ? ignoreScore
+            ? await findNearestAssistanceInCity(
+                geocodingResult.coordinates,
+                geocodingResult.city,
+              )
+            : await findNearestRecommendedAssistanceInCity(
+                geocodingResult.coordinates,
+                geocodingResult.city,
+              )
           : null;
         const nearestResult =
-          nearestInCity ?? findNearestAssistance(geocodingResult.coordinates);
+          nearestInCity ??
+          (ignoreScore
+            ? await findNearestAssistance(geocodingResult.coordinates)
+            : await findNearestRecommendedAssistance(
+                geocodingResult.coordinates,
+              ));
 
         if (requestId !== requestIdRef.current) return;
 
@@ -103,7 +114,6 @@ function SearchAssistancePage() {
             status: "empty",
             errorMessage: t("searchNoResults"),
             nearestResult: null,
-            hasCityMatch: false,
           });
           setIsOpen(false);
           return;
@@ -113,7 +123,6 @@ function SearchAssistancePage() {
           status: "success",
           errorMessage: null,
           nearestResult,
-          hasCityMatch: Boolean(nearestInCity),
         });
         setIsOpen(true);
       } catch (error) {
@@ -125,13 +134,12 @@ function SearchAssistancePage() {
           status: "error",
           errorMessage: isInvalid ? t("searchInvalid") : t("searchError"),
           nearestResult: null,
-          hasCityMatch: false,
         });
       }
     };
 
     void run();
-  }, [debouncedQuery, t]);
+  }, [debouncedQuery, ignoreScore, t]);
 
   const nearestResult =
     searchState.status === "success" ? searchState.nearestResult : null;
@@ -216,14 +224,6 @@ function SearchAssistancePage() {
               {searchState.errorMessage ?? t("searchNoResults")}
             </p>
           )}
-          {searchState.status === "success" && !searchState.hasCityMatch && (
-            <p
-              className="text-muted-foreground text-sm"
-              data-testid="search-no-city-results"
-            >
-              {t("searchNoCityResults")}
-            </p>
-          )}
         </section>
 
         {hasResult && (
@@ -236,7 +236,9 @@ function SearchAssistancePage() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-                  {t("nearestAssistanceTitle")}
+                  {ignoreScore
+                    ? t("nearestAssistanceTitle")
+                    : t("recommendedAssistanceTitle")}
                 </p>
                 <h3 className="text-foreground text-base font-semibold sm:text-lg">
                   {nearestResult.assistance.name}
@@ -274,15 +276,25 @@ function SearchAssistancePage() {
                   {formatDistance(nearestResult.distanceKm)}
                 </p>
               </div>
-              <Button
-                variant={copyState === "copied" ? "default" : "outline"}
-                size="sm"
-                onClick={copyAssistanceDetails}
-                className="w-full cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] sm:w-fit"
-              >
-                <Copy />
-                {copyState === "copied" ? t("copyDoneBtn") : t("copyBtn")}
-              </Button>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <Button
+                  variant={copyState === "copied" ? "default" : "outline"}
+                  size="sm"
+                  onClick={copyAssistanceDetails}
+                  className="w-full cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] sm:w-fit"
+                >
+                  <Copy />
+                  {copyState === "copied" ? t("copyDoneBtn") : t("copyBtn")}
+                </Button>
+                <Button
+                  variant={ignoreScore ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setIgnoreScore((prev) => !prev)}
+                  className="w-full sm:w-fit"
+                >
+                  {t("outOfWarranty")}
+                </Button>
+              </div>
             </CollapsibleContent>
           </Collapsible>
         )}

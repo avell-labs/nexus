@@ -16,6 +16,7 @@ jobs:
       ENTRA_TENANT_ID: ${{ secrets.ENTRA_TENANT_ID }}
       ENTRA_SCOPES: ${{ secrets.ENTRA_SCOPES }}
       ENTRA_AUTHORITY: ${{ secrets.ENTRA_AUTHORITY }}
+      FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
 
     steps:
       - uses: actions/checkout@v4
@@ -34,10 +35,22 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($env:ENTRA_TENANT_ID)) { throw "Missing secret: ENTRA_TENANT_ID" }
           Write-Host "Entra build vars are present."
 
+      - name: Generate Data Connect SDK
+        run: npm run dataconnect:generate
+
       - run: npm run inject:assistances
         env:
           AUTHORIZED_ASSISTANCES_JSON: ${{ secrets.AUTHORIZED_ASSISTANCES_JSON }}
           AUTHORIZED_ASSISTANCES_JSON_B64: ${{ secrets.AUTHORIZED_ASSISTANCES_JSON_B64 }}
+
+      - name: Install Firebase Admin for Seeding
+        run: npm install firebase-admin --no-save
+
+      - name: Seed Firestore
+        run: npm run seed:firestore
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_SERVICE_ACCOUNT_B64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_B64 }}
 
       - run: npm run make
 

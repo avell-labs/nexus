@@ -4,9 +4,13 @@ import type {
   NearestAssistanceResult,
 } from "@/types/assistance";
 import { z } from "zod";
+import { collection, getDocs } from "firebase/firestore";
+import { getFirestoreDb } from "@/services/firebase-client";
+import localAuthorizedAssistancesData from "@/data/authorized_assistances.json";
 
 const authorizedAssistanceSchema = z.object({
   id: z.string().min(1),
+  score: z.number().int().min(1).max(5).optional().default(3),
   name: z.string().min(1),
   type: z.string().min(1),
   address: z.string().min(1),
@@ -27,22 +31,67 @@ const authorizedAssistanceCollectionSchema = z.array(
   authorizedAssistanceSchema,
 );
 
-function loadRawAuthorizedAssistances(): unknown {
-  const dataModules = import.meta.glob("../data/authorized_assistances.json", {
-    eager: true,
-    import: "default",
-  }) as Record<string, unknown>;
+const MIN_RECOMMENDED_SCORE = 3;
 
-  const loadedData = Object.values(dataModules)[0];
-  return loadedData ?? [];
-}
-
-const parsedAuthorizedAssistances = authorizedAssistanceCollectionSchema.parse(
-  loadRawAuthorizedAssistances(),
+const localAuthorizedAssistances = authorizedAssistanceCollectionSchema.parse(
+  localAuthorizedAssistancesData,
 );
 
-function getAuthorizedAssistances(): readonly AuthorizedAssistance[] {
-  return parsedAuthorizedAssistances;
+let cachedAuthorizedAssistances: AuthorizedAssistance[] | null = null;
+let authorizedAssistancesPromise: Promise<AuthorizedAssistance[]> | null = null;
+
+async function fetchAuthorizedAssistancesFromFirebase(): Promise<
+  AuthorizedAssistance[] | null
+> {
+  const db = getFirestoreDb();
+  if (!db) {
+    return null;
+  }
+
+  const snapshot = await getDocs(collection(db, "authorized_assistances"));
+  if (snapshot.empty) {
+    throw new Error("EMPTY_DATASET");
+  }
+
+  const items = snapshot.docs.map((doc) => {
+    const data = doc.data() as Record<string, unknown>;
+    const id = typeof data.id === "string" ? data.id : doc.id;
+    return { id, ...data };
+  });
+
+  return authorizedAssistanceCollectionSchema.parse(items);
+}
+
+async function getAuthorizedAssistances(): Promise<
+  readonly AuthorizedAssistance[]
+> {
+  if (cachedAuthorizedAssistances) {
+    return cachedAuthorizedAssistances;
+  }
+
+  if (authorizedAssistancesPromise) {
+    return authorizedAssistancesPromise;
+  }
+
+  authorizedAssistancesPromise = (async () => {
+    try {
+      const remoteAssistances = await fetchAuthorizedAssistancesFromFirebase();
+      if (remoteAssistances) {
+        cachedAuthorizedAssistances = remoteAssistances;
+        return remoteAssistances;
+      }
+    } catch (error) {
+      console.warn(
+        "Failed to load authorized assistances from Firebase. Falling back to local JSON.",
+        error,
+      );
+    }
+
+    cachedAuthorizedAssistances = localAuthorizedAssistances;
+    return localAuthorizedAssistances;
+  })();
+
+  return authorizedAssistancesPromise;
 }
 
 function toRadians(value: number): number {
@@ -78,10 +127,16 @@ function normalizeCity(value: string): string {
     .trim();
 }
 
+function isRecommendedAssistance(assistance: AuthorizedAssistance): boolean {
+  return assistance.score >= MIN_RECOMMENDED_SCORE;
+}
+
 function findNearestAssistance(
   origin: Coordinates,
-): NearestAssistanceResult | null {
-  return findNearestAssistanceFromList(origin, getAuthorizedAssistances());
+): Promise<NearestAssistanceResult | null> {
+  return getAuthorizedAssistances().then((assistances) =>
+    findNearestAssistanceFromList(origin, assistances),
+  );
 }
 
 function findNearestAssistanceFromList(
@@ -115,13 +170,10 @@ function findNearestAssistanceFromList(
 function findNearestAssistanceInCity(
   origin: Coordinates,
   city: string,
-): NearestAssistanceResult | null {
-  const normalizedTargetCity = normalizeCity(city);
-  const assistancesInCity = getAuthorizedAssistances().filter(
-    (assistance) => normalizeCity(assistance.city) === normalizedTargetCity,
+): Promise<NearestAssistanceResult | null> {
+  return getAuthorizedAssistances().then((assistances) =>
+    findNearestAssistanceInCityFromList(origin, city, assistances),
   );
-
-  return findNearestAssistanceFromList(origin, assistancesInCity);
 }
 
 function findNearestAssistanceInCityFromList(
@@ -137,10 +189,56 @@ function findNearestAssistanceInCityFromList(
   return findNearestAssistanceFromList(origin, assistancesInCity);
 }
 
+function findNearestRecommendedAssistance(
+  origin: Coordinates,
+): Promise<NearestAssistanceResult | null> {
+  return getAuthorizedAssistances().then((assistances) =>
+    findNearestRecommendedAssistanceFromList(origin, assistances),
+  );
+}
+
+function findNearestRecommendedAssistanceFromList(
+  origin: Coordinates,
+  assistances: readonly AuthorizedAssistance[],
+): NearestAssistanceResult | null {
+  const recommendedAssistances = assistances.filter(isRecommendedAssistance);
+  return findNearestAssistanceFromList(origin, recommendedAssistances);
+}
+
+function findNearestRecommendedAssistanceInCity(
+  origin: Coordinates,
+  city: string,
+): Promise<NearestAssistanceResult | null> {
+  return getAuthorizedAssistances().then((assistances) =>
+    findNearestRecommendedAssistanceInCityFromList(origin, city, assistances),
+  );
+}
+
+function findNearestRecommendedAssistanceInCityFromList(
+  origin: Coordinates,
+  city: string,
+  assistances: readonly AuthorizedAssistance[],
+): NearestAssistanceResult | null {
+  const normalizedTargetCity = normalizeCity(city);
+  const assistancesInCity = assistances.filter(
+    (assistance) => normalizeCity(assistance.city) === normalizedTargetCity,
+  );
+
+  const recommendedAssistances = assistancesInCity.filter(
+    isRecommendedAssistance,
+  );
+
+  return findNearestAssistanceFromList(origin, recommendedAssistances);
+}
+
 export {
+  getAuthorizedAssistances,
   findNearestAssistance,
   findNearestAssistanceFromList,
   findNearestAssistanceInCity,
   findNearestAssistanceInCityFromList,
-  getAuthorizedAssistances,
+  findNearestRecommendedAssistance,
+  findNearestRecommendedAssistanceFromList,
+  findNearestRecommendedAssistanceInCity,
+  findNearestRecommendedAssistanceInCityFromList,
 };

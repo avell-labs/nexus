@@ -16,3 +16,15 @@ export function getUpdateStatus(): Promise<UpdateStatus> {
 export function checkForUpdates() {
   return ipc.client.app.checkForUpdates();
 }
+
+export function getSystemInfo() {
+  return ipc.client.app.systemInfo();
+}
+
+export function getReleaseNotes() {
+  return ipc.client.app.getReleaseNotes();
+}
+
+export function setAppIcon(iconName: string) {
+  return ipc.client.app.setAppIcon(iconName);
+}

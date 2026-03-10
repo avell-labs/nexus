@@ -83,6 +83,9 @@ let authError: string | null = null;
 let isHydratingSession = false;
 let hydrationPromise: Promise<void> | null = null;
 let avatarUrl: string | null = null;
+let department: string | null = null;
+let position: string | null = null;
+let manager: string | null = null;
 
 async function resolveAvatarFromEntra(
   accessToken?: string,
@@ -112,6 +115,71 @@ async function resolveAvatarFromEntra(
     return `data:${mimeType};base64,${base64Image}`;
   } catch {
     return null;
+  }
+}
+
+async function resolveUserProfileFromEntra(accessToken?: string): Promise<{
+  department: string | null;
+  position: string | null;
+  manager: string | null;
+}> {
+  if (!accessToken) {
+    return { department: null, position: null, manager: null };
+  }
+
+  try {
+    const response = await fetch("https://graph.microsoft.com/v1.0/me", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      console.error(
+        "Failed to fetch user profile:",
+        response.status,
+        response.statusText,
+      );
+      return { department: null, position: null, manager: null };
+    }
+
+    const data = await response.json();
+
+    let managerName: string | null = null;
+    // Fetch manager separately
+    if (data.manager) {
+      try {
+        const managerResponse = await fetch(
+          "https://graph.microsoft.com/v1.0/me/manager",
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          },
+        );
+        if (managerResponse.ok) {
+          const managerData = await managerResponse.json();
+          managerName = managerData.displayName || null;
+        } else {
+          console.error(
+            "Failed to fetch manager:",
+            managerResponse.status,
+            managerResponse.statusText,
+          );
+        }
+      } catch (managerError) {
+        console.error("Error fetching manager:", managerError);
+      }
+    }
+
+    return {
+      department: data.department || null,
+      position: data.jobTitle || null,
+      manager: managerName,
+    };
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+    return { department: null, position: null, manager: null };
   }
 }
 
@@ -154,16 +222,26 @@ async function hydrateSessionFromCache() {
         scopes: msalConfig.scopes,
       });
       avatarUrl = await resolveAvatarFromEntra(authResult.accessToken);
+      const profile = await resolveUserProfileFromEntra(authResult.accessToken);
+      department = profile.department;
+      position = profile.position;
+      manager = profile.manager;
       await persistTokenCache();
     } catch {
       authResult = {
         account: primaryAccount,
       } as AuthenticationResult;
       avatarUrl = null;
+      department = null;
+      position = null;
+      manager = null;
     }
   } catch (error) {
     authResult = null;
     avatarUrl = null;
+    department = null;
+    position = null;
+    manager = null;
     authError = formatAuthError(error);
   } finally {
     isHydratingSession = false;
@@ -179,6 +257,9 @@ function getAuthUser(): AuthUser | null {
     name: authResult.account.name ?? null,
     username: authResult.account.username ?? null,
     avatarUrl,
+    department,
+    position,
+    manager,
   };
 }
 
@@ -192,6 +273,9 @@ function getAuthStatus(): AuthStatus {
         name: "E2E User",
         username: "e2e@nexus.local",
         avatarUrl: null,
+        department: "Engineering",
+        position: "Developer",
+        manager: "E2E Manager",
       },
       error: null,
     };
@@ -249,16 +333,28 @@ async function signInWithEntra(): Promise<AuthStatus> {
     if (deviceCodeResult) {
       authResult = deviceCodeResult;
       avatarUrl = await resolveAvatarFromEntra(deviceCodeResult.accessToken);
+      const profile = await resolveUserProfileFromEntra(
+        deviceCodeResult.accessToken,
+      );
+      department = profile.department;
+      position = profile.position;
+      manager = profile.manager;
       authError = null;
       await persistTokenCache();
     } else {
       authResult = null;
       avatarUrl = null;
+      department = null;
+      position = null;
+      manager = null;
       authError = "Device code authentication did not return a token.";
     }
   } catch (error) {
     authResult = null;
     avatarUrl = null;
+    department = null;
+    position = null;
+    manager = null;
     authError = formatAuthError(error);
   } finally {
     isAuthenticating = false;
@@ -278,6 +374,9 @@ async function signOutFromEntra(): Promise<AuthStatus> {
 
   authResult = null;
   avatarUrl = null;
+  department = null;
+  position = null;
+  manager = null;
   isAuthenticating = false;
   authError = null;
 

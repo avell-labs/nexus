@@ -2,11 +2,7 @@ import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { signOutFromEntra } from "@/actions/auth";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,9 +21,12 @@ import {
 import {
   ChevronsUpDownIcon,
   LogOutIcon,
-  Settings2Icon,
   UserRoundIcon,
 } from "lucide-react";
+import {
+  getUserBadges,
+  type UserBadge,
+} from "@/services/contributors-service";
 
 const REDDIT_DEFAULT_AVATARS = [
   "https://www.redditstatic.com/avatars/defaults/v2/avatar_default_1.png",
@@ -62,12 +61,50 @@ export function NavUser({ user }: NavUserProps) {
   const { t } = useTranslation();
   const { isMobile } = useSidebar();
   const [logoutPending, setLogoutPending] = React.useState(false);
+  const [badges, setBadges] = React.useState<UserBadge[]>([]);
   const [randomAvatar] = React.useState(() => {
-    const randomIndex = Math.floor(Math.random() * REDDIT_DEFAULT_AVATARS.length);
+    const randomIndex = Math.floor(
+      Math.random() * REDDIT_DEFAULT_AVATARS.length,
+    );
     return REDDIT_DEFAULT_AVATARS[randomIndex];
   });
 
   const avatarSrc = user.avatar ?? randomAvatar;
+
+  React.useEffect(() => {
+    let active = true;
+    void getUserBadges({
+      name: user.name,
+      email: user.email,
+    }).then((nextBadges) => {
+      if (!active) return;
+      setBadges(nextBadges);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [user.email, user.name]);
+
+  const renderBadges = (sizeClassName: string) => {
+    if (badges.length === 0) {
+      return null;
+    }
+
+    return (
+      <div className="flex items-center gap-1">
+        {badges.map((badge) => (
+          <img
+            key={`${badge.key}-${sizeClassName}`}
+            src={badge.imageUrl}
+            alt={badge.alt}
+            title={badge.label}
+            className={sizeClassName}
+          />
+        ))}
+      </div>
+    );
+  };
 
   async function handleLogout() {
     setLogoutPending(true);
@@ -95,7 +132,10 @@ export function NavUser({ user }: NavUserProps) {
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user.name}</span>
+                <div className="flex min-w-0 items-center gap-1">
+                  <span className="truncate font-medium">{user.name}</span>
+                  {renderBadges("h-4 w-4")}
+                </div>
                 <span className="truncate text-xs">{user.email}</span>
               </div>
               <ChevronsUpDownIcon className="ml-auto size-4" />
@@ -116,21 +156,20 @@ export function NavUser({ user }: NavUserProps) {
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.name}</span>
+                  <div className="flex min-w-0 items-center gap-1">
+                    <span className="truncate font-medium">{user.name}</span>
+                    {renderBadges("h-4 w-4")}
+                  </div>
                   <span className="truncate text-xs">{user.email}</span>
                 </div>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem disabled>
-                <UserRoundIcon />
-                {t("navAccountInfo")}
-              </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/settings">
-                  <Settings2Icon />
-                  {t("navSettings")}
+                <Link to="/account">
+                  <UserRoundIcon />
+                  {t("navAccount")}
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>

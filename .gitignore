@@ -110,6 +110,11 @@ src/data/authorized_assistances.json
 
 # Release notes artifact
 .github/release-notes.md
+.github/
+!.github/workflows/
+!.github/dependabot.yaml
+!.github/release-template.md
+releases/
 
 # VSCode
 .vscode/
