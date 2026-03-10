@@ -43,6 +43,43 @@ jobs:
           AUTHORIZED_ASSISTANCES_JSON: ${{ secrets.AUTHORIZED_ASSISTANCES_JSON }}
           AUTHORIZED_ASSISTANCES_JSON_B64: ${{ secrets.AUTHORIZED_ASSISTANCES_JSON_B64 }}
 
+      - name: Inject Sensitive Data Files
+        shell: pwsh
+        env:
+          BETA_TESTERS_JSON: ${{ secrets.BETA_TESTERS_JSON }}
+          BETA_TESTERS_JSON_B64: ${{ secrets.BETA_TESTERS_JSON_B64 }}
+          BUG_BUSTERS_JSON: ${{ secrets.BUG_BUSTERS_JSON }}
+          BUG_BUSTERS_JSON_B64: ${{ secrets.BUG_BUSTERS_JSON_B64 }}
+          DEVELOPERS_JSON: ${{ secrets.DEVELOPERS_JSON }}
+          DEVELOPERS_JSON_B64: ${{ secrets.DEVELOPERS_JSON_B64 }}
+        run: |
+          $targetDir = Join-Path $PWD "src/data"
+          New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
+
+          function Write-JsonFromSecret([string]$rawJson, [string]$base64, [string]$path, [string]$rawName, [string]$b64Name) {
+            if (-not [string]::IsNullOrWhiteSpace($rawJson)) {
+              $null = $rawJson | ConvertFrom-Json
+              Set-Content -Path $path -Value $rawJson -Encoding UTF8
+              Write-Host "Wrote $path"
+              return
+            }
+
+            if (-not [string]::IsNullOrWhiteSpace($base64)) {
+              $bytes = [Convert]::FromBase64String($base64)
+              $content = [Text.Encoding]::UTF8.GetString($bytes)
+              $null = $content | ConvertFrom-Json
+              Set-Content -Path $path -Value $content -Encoding UTF8
+              Write-Host "Wrote $path"
+              return
+            }
+
+            throw "Missing secret: $rawName or $b64Name"
+          }
+
+          Write-JsonFromSecret $env:BETA_TESTERS_JSON $env:BETA_TESTERS_JSON_B64 (Join-Path $targetDir "beta-testers.json") "BETA_TESTERS_JSON" "BETA_TESTERS_JSON_B64"
+          Write-JsonFromSecret $env:BUG_BUSTERS_JSON $env:BUG_BUSTERS_JSON_B64 (Join-Path $targetDir "bug-busters.json") "BUG_BUSTERS_JSON" "BUG_BUSTERS_JSON_B64"
+          Write-JsonFromSecret $env:DEVELOPERS_JSON $env:DEVELOPERS_JSON_B64 (Join-Path $targetDir "developers.json") "DEVELOPERS_JSON" "DEVELOPERS_JSON_B64"
+
       - name: Install Firebase Admin for Seeding
         run: npm install firebase-admin --no-save
 
