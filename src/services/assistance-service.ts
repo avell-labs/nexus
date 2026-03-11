@@ -4,8 +4,6 @@ import type {
   NearestAssistanceResult,
 } from "@/types/assistance";
 import { z } from "zod";
-import { collection, getDocs } from "firebase/firestore";
-import { getFirestoreDb } from "@/services/firebase-client";
 import localAuthorizedAssistancesData from "@/data/authorized_assistances.json";
 
 const authorizedAssistanceSchema = z.object({
@@ -37,61 +35,10 @@ const localAuthorizedAssistances = authorizedAssistanceCollectionSchema.parse(
   localAuthorizedAssistancesData,
 );
 
-let cachedAuthorizedAssistances: AuthorizedAssistance[] | null = null;
-let authorizedAssistancesPromise: Promise<AuthorizedAssistance[]> | null = null;
-
-async function fetchAuthorizedAssistancesFromFirebase(): Promise<
-  AuthorizedAssistance[] | null
-> {
-  const db = getFirestoreDb();
-  if (!db) {
-    return null;
-  }
-
-  const snapshot = await getDocs(collection(db, "authorized_assistances"));
-  if (snapshot.empty) {
-    throw new Error("EMPTY_DATASET");
-  }
-
-  const items = snapshot.docs.map((doc) => {
-    const data = doc.data() as Record<string, unknown>;
-    const id = typeof data.id === "string" ? data.id : doc.id;
-    return { id, ...data };
-  });
-
-  return authorizedAssistanceCollectionSchema.parse(items);
-}
-
 async function getAuthorizedAssistances(): Promise<
   readonly AuthorizedAssistance[]
 > {
-  if (cachedAuthorizedAssistances) {
-    return cachedAuthorizedAssistances;
-  }
-
-  if (authorizedAssistancesPromise) {
-    return authorizedAssistancesPromise;
-  }
-
-  authorizedAssistancesPromise = (async () => {
-    try {
-      const remoteAssistances = await fetchAuthorizedAssistancesFromFirebase();
-      if (remoteAssistances) {
-        cachedAuthorizedAssistances = remoteAssistances;
-        return remoteAssistances;
-      }
-    } catch (error) {
-      console.warn(
-        "Failed to load authorized assistances from Firebase. Falling back to local JSON.",
-        error,
-      );
-    }
-
-    cachedAuthorizedAssistances = localAuthorizedAssistances;
-    return localAuthorizedAssistances;
-  })();
-
-  return authorizedAssistancesPromise;
+  return localAuthorizedAssistances;
 }
 
 function toRadians(value: number): number {

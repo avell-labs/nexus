@@ -1,6 +1,4 @@
-import { collection, getDocs } from "firebase/firestore";
 import { z } from "zod";
-import { getFirestoreDb } from "@/services/firebase-client";
 import localBetaTesters from "@/data/beta-testers.json";
 import localBugBusters from "@/data/bug-busters.json";
 import localDevelopers from "@/data/developers.json";
@@ -62,36 +60,8 @@ const badgeDefinitions = [
   },
 ] as const;
 
-let cachedContributorLists: ContributorLists | null = null;
-let contributorPromise: Promise<ContributorLists> | null = null;
-
 function normalize(value: string | null | undefined): string {
   return value?.trim().toLowerCase() ?? "";
-}
-
-async function fetchContributorList(
-  collectionName: string,
-  fallback: Contributor[],
-): Promise<Contributor[]> {
-  const db = getFirestoreDb();
-  if (!db) {
-    return fallback;
-  }
-
-  try {
-    const snapshot = await getDocs(collection(db, collectionName));
-    if (snapshot.empty) {
-      throw new Error("EMPTY_DATASET");
-    }
-    const items = snapshot.docs.map((doc) => doc.data());
-    return contributorsSchema.parse(items);
-  } catch (error) {
-    console.warn(
-      `Failed to load ${collectionName} from Firebase. Falling back to local JSON.`,
-      error,
-    );
-    return fallback;
-  }
 }
 
 export function getLocalContributorLists(): ContributorLists {
@@ -99,32 +69,7 @@ export function getLocalContributorLists(): ContributorLists {
 }
 
 export async function getContributorLists(): Promise<ContributorLists> {
-  if (cachedContributorLists) {
-    return cachedContributorLists;
-  }
-
-  if (contributorPromise) {
-    return contributorPromise;
-  }
-
-  contributorPromise = (async () => {
-    const [betaTesters, bugBusters, developers] = await Promise.all([
-      fetchContributorList("beta_testers", localContributorLists.betaTesters),
-      fetchContributorList("bug_busters", localContributorLists.bugBusters),
-      fetchContributorList("developers", localContributorLists.developers),
-    ]);
-
-    const lists: ContributorLists = {
-      betaTesters,
-      bugBusters,
-      developers,
-    };
-
-    cachedContributorLists = lists;
-    return lists;
-  })();
-
-  return contributorPromise;
+  return localContributorLists;
 }
 
 export async function getUserBadges(user: {

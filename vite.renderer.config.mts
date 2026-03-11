@@ -5,7 +5,7 @@ import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  envPrefix: ["VITE_", "FIREBASE_"],
+  envPrefix: ["VITE_"],
   plugins: [
     tanstackRouter({
       target: "react",
