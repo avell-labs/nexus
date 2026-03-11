@@ -2,6 +2,7 @@ import { z } from "zod";
 import localBetaTesters from "@/data/beta-testers.json";
 import localBugBusters from "@/data/bug-busters.json";
 import localDevelopers from "@/data/developers.json";
+import { assetUrl } from "@/utils/assets";
 
 export interface Contributor {
   name: string;
@@ -41,21 +42,21 @@ const badgeDefinitions = [
     key: "beta-tester",
     label: "Beta Tester",
     alt: "Beta Tester Badge",
-    imageUrl: "/images/badges/beta-tester-badge-48.png",
+    imageUrl: assetUrl("images/badges/beta-tester-badge-48.png"),
     listKey: "betaTesters",
   },
   {
     key: "bug-hunter",
     label: "Bug Hunter",
     alt: "Bug Hunter Badge",
-    imageUrl: "/images/badges/bug-hunter-badge-48.png",
+    imageUrl: assetUrl("images/badges/bug-hunter-badge-48.png"),
     listKey: "bugBusters",
   },
   {
     key: "active-developer",
     label: "Developer",
     alt: "Developer Badge",
-    imageUrl: "/images/badges/active-developer-badge-48.png",
+    imageUrl: assetUrl("images/badges/active-developer-badge-48.png"),
     listKey: "developers",
   },
 ] as const;

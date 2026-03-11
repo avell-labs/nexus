@@ -14,6 +14,7 @@ import {
   getContributorLists,
   getLocalContributorLists,
 } from "@/services/contributors-service";
+import { assetUrl } from "@/utils/assets";
 
 function AboutPage() {
   const { t } = useTranslation();
@@ -87,7 +88,7 @@ function AboutPage() {
                 <span className="inline-flex items-center justify-center gap-3">
                   Beta Testers
                   <img
-                    src="/images/badges/beta-tester-badge-100.png"
+                    src={assetUrl("images/badges/beta-tester-badge-100.png")}
                     alt="Beta Tester Badge"
                     className="h-8 w-8"
                   />
@@ -139,7 +140,7 @@ function AboutPage() {
                 <span className="inline-flex items-center justify-center gap-3">
                   Bug Hunters
                   <img
-                    src="/images/badges/bug-hunter-badge-100.png"
+                    src={assetUrl("images/badges/bug-hunter-badge-100.png")}
                     alt="Bug Hunter Badge"
                     className="h-8 w-8"
                   />
@@ -191,7 +192,7 @@ function AboutPage() {
                 <span className="inline-flex items-center justify-center gap-3">
                   Developers
                   <img
-                    src="/images/badges/active-developer-badge-100.png"
+                    src={assetUrl("images/badges/active-developer-badge-100.png")}
                     alt="Developer Badge"
                     className="h-8 w-8"
                   />

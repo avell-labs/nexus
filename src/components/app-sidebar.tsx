@@ -23,6 +23,7 @@ import {
   HelpCircleIcon,
 } from "lucide-react";
 import type { AuthUser } from "@/types/auth";
+import { assetUrl } from "@/utils/assets";
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   authUser: AuthUser | null;
@@ -44,16 +45,16 @@ export function AppSidebar({ authUser, ...props }: AppSidebarProps) {
   function resolveLogo() {
     if (accent === "slate") {
       return theme === "dark"
-        ? "/images/logo/dark.png"
-        : "/images/logo/light.png";
+        ? assetUrl("images/logo/dark.png")
+        : assetUrl("images/logo/light.png");
     }
 
     const map: Record<string, string> = {
-      ocean: "/images/logo/ocean.png",
-      rose: "/images/logo/rose.png",
-      sunset: "/images/logo/sunset.png",
-      banana: "/images/logo/banana.png",
-      pastel: "/images/logo/pastel.png",
+      ocean: assetUrl("images/logo/ocean.png"),
+      rose: assetUrl("images/logo/rose.png"),
+      sunset: assetUrl("images/logo/sunset.png"),
+      banana: assetUrl("images/logo/banana.png"),
+      pastel: assetUrl("images/logo/pastel.png"),
     };
 
     return map[accent];
