@@ -3,6 +3,7 @@ import {
   findNearestAssistanceInCityFromList,
   findNearestRecommendedAssistanceFromList,
   findNearestRecommendedAssistanceInCityFromList,
+  findAssistanceByQueryFromList,
 } from "@/services/assistance-service";
 import type { AuthorizedAssistance } from "@/types/assistance";
 
@@ -106,6 +107,35 @@ describe("assistance-service", () => {
           score: 1,
         },
       ],
+    );
+
+    expect(result).toBeNull();
+  });
+
+  it("finds assistance by name prefix", () => {
+    const result = findAssistanceByQueryFromList(
+      "Joinville B",
+      mockAssistances,
+    );
+
+    expect(result).not.toBeNull();
+    expect(result?.id).toBe("joinville-b");
+  });
+
+  it("finds assistance by cnpj", () => {
+    const result = findAssistanceByQueryFromList(
+      "00000000000102",
+      mockAssistances,
+    );
+
+    expect(result).not.toBeNull();
+    expect(result?.id).toBe("curitiba-a");
+  });
+
+  it("returns null when search is ambiguous", () => {
+    const result = findAssistanceByQueryFromList(
+      "Joinville",
+      mockAssistances,
     );
 
     expect(result).toBeNull();

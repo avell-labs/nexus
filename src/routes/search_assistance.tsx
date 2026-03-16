@@ -22,6 +22,7 @@ import {
   findNearestAssistanceInCity,
   findNearestRecommendedAssistance,
   findNearestRecommendedAssistanceInCity,
+  findAssistanceByQuery,
 } from "@/services/assistance-service";
 import {
   geocodeSearchQuery,
@@ -87,6 +88,22 @@ function SearchAssistancePage() {
 
     const run = async () => {
       try {
+        const directMatch = await findAssistanceByQuery(normalized);
+        if (directMatch) {
+          if (requestId !== requestIdRef.current) return;
+
+          setSearchState({
+            status: "success",
+            errorMessage: null,
+            nearestResult: {
+              assistance: directMatch,
+              distanceKm: 0,
+            },
+          });
+          setIsOpen(true);
+          return;
+        }
+
         const geocodingResult = await geocodeSearchQuery(normalized);
         const nearestInCity = geocodingResult.city
           ? ignoreScore

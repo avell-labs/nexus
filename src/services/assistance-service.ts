@@ -30,6 +30,7 @@ const authorizedAssistanceCollectionSchema = z.array(
 );
 
 const MIN_RECOMMENDED_SCORE = 3;
+const MIN_SEARCH_QUERY_LENGTH = 3;
 
 const localAuthorizedAssistances = authorizedAssistanceCollectionSchema.parse(
   localAuthorizedAssistancesData,
@@ -70,6 +71,15 @@ function normalizeCity(value: string): string {
   return value
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .trim();
+}
+
+function normalizeSearchValue(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^\p{L}\p{N}]+/gu, "")
     .toLowerCase()
     .trim();
 }
@@ -178,6 +188,117 @@ function findNearestRecommendedAssistanceInCityFromList(
   return findNearestAssistanceFromList(origin, recommendedAssistances);
 }
 
+type AssistanceSearchMatch = {
+  assistance: AuthorizedAssistance;
+  matchScore: number;
+  fieldRank: number;
+};
+
+const assistanceSearchFields: Array<{
+  field: keyof AuthorizedAssistance;
+  fieldRank: number;
+}> = [
+  { field: "name", fieldRank: 0 },
+  { field: "id", fieldRank: 1 },
+  { field: "cnpj", fieldRank: 2 },
+  { field: "crm", fieldRank: 3 },
+  { field: "email", fieldRank: 4 },
+  { field: "phone", fieldRank: 5 },
+];
+
+function getAssistanceSearchMatch(
+  assistance: AuthorizedAssistance,
+  normalizedQuery: string,
+): AssistanceSearchMatch | null {
+  let bestMatch: AssistanceSearchMatch | null = null;
+
+  for (const { field, fieldRank } of assistanceSearchFields) {
+    const rawValue = assistance[field];
+    if (typeof rawValue !== "string") continue;
+
+    const normalizedValue = normalizeSearchValue(rawValue);
+    if (!normalizedValue) continue;
+
+    let matchScore = 0;
+    if (normalizedValue === normalizedQuery) {
+      matchScore = 3;
+    } else if (normalizedValue.startsWith(normalizedQuery)) {
+      matchScore = 2;
+    }
+
+    if (matchScore === 0) continue;
+
+    const candidate: AssistanceSearchMatch = {
+      assistance,
+      matchScore,
+      fieldRank,
+    };
+
+    if (
+      !bestMatch ||
+      candidate.matchScore > bestMatch.matchScore ||
+      (candidate.matchScore === bestMatch.matchScore &&
+        candidate.fieldRank < bestMatch.fieldRank)
+    ) {
+      bestMatch = candidate;
+    }
+  }
+
+  return bestMatch;
+}
+
+function findAssistanceByQueryFromList(
+  query: string,
+  assistances: readonly AuthorizedAssistance[],
+): AuthorizedAssistance | null {
+  const normalizedQuery = normalizeSearchValue(query);
+  if (normalizedQuery.length < MIN_SEARCH_QUERY_LENGTH) {
+    return null;
+  }
+
+  let bestMatch: AssistanceSearchMatch | null = null;
+  let hasTie = false;
+
+  for (const assistance of assistances) {
+    const match = getAssistanceSearchMatch(assistance, normalizedQuery);
+    if (!match) continue;
+
+    if (
+      !bestMatch ||
+      match.matchScore > bestMatch.matchScore ||
+      (match.matchScore === bestMatch.matchScore &&
+        match.fieldRank < bestMatch.fieldRank)
+    ) {
+      bestMatch = match;
+      hasTie = false;
+      continue;
+    }
+
+    if (
+      bestMatch &&
+      match.assistance.id !== bestMatch.assistance.id &&
+      match.matchScore === bestMatch.matchScore &&
+      match.fieldRank === bestMatch.fieldRank
+    ) {
+      hasTie = true;
+    }
+  }
+
+  if (!bestMatch || hasTie) {
+    return null;
+  }
+
+  return bestMatch.assistance;
+}
+
+function findAssistanceByQuery(
+  query: string,
+): Promise<AuthorizedAssistance | null> {
+  return getAuthorizedAssistances().then((assistances) =>
+    findAssistanceByQueryFromList(query, assistances),
+  );
+}
+
 export {
   getAuthorizedAssistances,
   findNearestAssistance,
@@ -188,4 +309,6 @@ export {
   findNearestRecommendedAssistanceFromList,
   findNearestRecommendedAssistanceInCity,
   findNearestRecommendedAssistanceInCityFromList,
+  findAssistanceByQuery,
+  findAssistanceByQueryFromList,
 };

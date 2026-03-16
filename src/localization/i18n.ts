@@ -35,7 +35,7 @@ i18n.use(initReactI18next).init({
         accentPastel: "Pastel",
         trackingDialog: "Enter the order code (e.g.: FR260000AVN0B)",
         searchBtn: "Search...",
-        searchPlaceholder: "Street + number or City + State",
+        searchPlaceholder: "Street + number, City + State",
         searchLoading: "Searching nearest assistance...",
         searchNoResults: "No assistance was found for this location.",
         searchNoCityResults: "No assistance was found in this city.",
@@ -146,7 +146,7 @@ i18n.use(initReactI18next).init({
         accentPastel: "Pastel",
         trackingDialog: "Informe o número do pedido (ex.: FR260000AVN0B)",
         searchBtn: "Pesquisar...",
-        searchPlaceholder: "Rua + número ou Cidade + Estado",
+        searchPlaceholder: "Rua + número, Cidade + Estado",
         searchLoading: "Buscando assistência mais próxima...",
         searchNoResults:
           "Nenhuma assistência foi encontrada para essa localização",
