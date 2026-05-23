@@ -73,7 +73,7 @@
   },
   "dependencies": {
     "@3d-dice/dice-box": "^1.1.4",
-    "@azure/msal-node": "^5.0.6",
+    "@azure/msal-node": "^5.2.2",
     "@base-ui/react": "^1.1.0",
     "@fontsource-variable/geist": "^5.2.8",
     "@fontsource-variable/geist-mono": "^5.2.7",
